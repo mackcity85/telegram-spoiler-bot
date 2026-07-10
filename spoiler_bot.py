@@ -16,7 +16,15 @@ WARNING = """⚠️ Media Removed
 
 This group requires all photos, videos, GIFs, and media files to be sent using Telegram's Hide with Spoiler option.
 
-Please resend your media with the spoiler enabled.
+Please resend your media with the spoiler enabled. 
+How to do it:
+
+1. Select your photo or video.
+2. Before sending, tap the ⋮ menu (or options button).
+3. Choose Hide with Spoiler.
+4. Send the media again.
+
+Thank you for helping keep the group comfortable for everyone. 🙏
 """
 
 # Render health check
