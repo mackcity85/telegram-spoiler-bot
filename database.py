@@ -19,7 +19,9 @@ def init_db():
     cursor = conn.cursor()
 
 
+    # ==========================
     # Birthdays
+    # ==========================
 
     cursor.execute(
         """
@@ -35,7 +37,10 @@ def init_db():
     )
 
 
+
+    # ==========================
     # Suggestions
+    # ==========================
 
     cursor.execute(
         """
@@ -51,7 +56,10 @@ def init_db():
     )
 
 
-    # Pin tracking
+
+    # ==========================
+    # Pin Tracking
+    # ==========================
 
     cursor.execute(
         """
@@ -63,6 +71,24 @@ def init_db():
         )
         """
     )
+
+
+
+    # ==========================
+    # User Activity Tracking
+    # ==========================
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_activity
+        (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            last_seen TEXT
+        )
+        """
+    )
+
 
 
     conn.commit()
