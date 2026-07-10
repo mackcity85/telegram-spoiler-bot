@@ -35,6 +35,13 @@ This group requires all pictures, videos, GIFs, and media files to be sent using
 
 Please resend your media with the spoiler enabled.
 
+How to do it:
+
+1. Select your photo or video.
+2. Tap the ⋮ menu/options.
+3. Choose "Hide with Spoiler".
+4. Send the media again.
+
 Thank you for helping keep the group comfortable for everyone. 🙏
 """
 
@@ -97,10 +104,13 @@ def run_web():
 
 
 # ==========================
-# GET CHAT ID
+# GET GROUP ID
 # ==========================
 
-async def get_id(update, context):
+async def get_id(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     await update.message.reply_text(
         f"Chat ID: {update.effective_chat.id}"
@@ -139,7 +149,7 @@ async def set_birthday(
     except ValueError:
 
         await update.message.reply_text(
-            "❌ Invalid date format. Use MM/DD"
+            "❌ Invalid format. Use MM/DD"
         )
 
         return
@@ -178,7 +188,10 @@ async def set_birthday(
 
 
 
-async def my_birthday(update, context):
+async def my_birthday(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     user = update.effective_user
     chat = update.effective_chat
@@ -221,7 +234,10 @@ async def my_birthday(update, context):
 
 
 
-async def remove_birthday(update, context):
+async def remove_birthday(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     user = update.effective_user
     chat = update.effective_chat
@@ -254,7 +270,9 @@ async def remove_birthday(update, context):
 
 
 
-async def check_birthdays(context):
+async def check_birthdays(
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     today = datetime.now().strftime("%m/%d")
 
@@ -286,17 +304,21 @@ async def check_birthdays(context):
             text=(
                 f"🎉🎂 Happy Birthday {username}! 🎂🎉\n\n"
                 "Everyone help us wish them a wonderful birthday!\n"
-                "May your day be filled with happiness and good energy. 🥳"
+                "May your day be filled with happiness, "
+                "love, and good energy. 🥳"
             )
         )
 
 
 
 # ==========================
-# MEDIA CHECK
+# MEDIA MODERATION
 # ==========================
 
-async def check_media(update, context):
+async def check_media(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     message = update.effective_message
 
@@ -312,6 +334,9 @@ async def check_media(update, context):
     ):
         return
 
+
+
+    # Admin bypass
 
     try:
 
@@ -334,9 +359,14 @@ async def check_media(update, context):
 
 
 
+    # Allow spoiler media
+
     if message.has_media_spoiler:
         return
 
+
+
+    # Remove media
 
     try:
 
@@ -355,7 +385,10 @@ async def check_media(update, context):
 
     except Exception as e:
 
-        logging.exception(e)
+        logging.exception(
+            "Delete error: %s",
+            e
+        )
 
 
 
@@ -381,6 +414,7 @@ def main():
     ).start()
 
 
+
     app = (
         Application
         .builder()
@@ -389,7 +423,8 @@ def main():
     )
 
 
-    # Media
+
+    # Media protection
 
     app.add_handler(
         MessageHandler(
@@ -403,6 +438,7 @@ def main():
     )
 
 
+
     # Commands
 
     app.add_handler(
@@ -412,12 +448,14 @@ def main():
         )
     )
 
+
     app.add_handler(
         CommandHandler(
             "birthday",
             set_birthday
         )
     )
+
 
     app.add_handler(
         CommandHandler(
@@ -426,6 +464,7 @@ def main():
         )
     )
 
+
     app.add_handler(
         CommandHandler(
             "removebirthday",
@@ -433,6 +472,9 @@ def main():
         )
     )
 
+
+
+    # Birthday scheduler
 
     scheduler = AsyncIOScheduler()
 
@@ -447,9 +489,11 @@ def main():
     scheduler.start()
 
 
+
     logging.info(
         "🎉 Melanated AZ Bot is running!"
     )
+
 
 
     app.run_polling(
