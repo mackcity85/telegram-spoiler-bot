@@ -35,13 +35,6 @@ This group requires all pictures, videos, GIFs, and media files to be sent using
 
 Please resend your media with the spoiler enabled.
 
-How to do it:
-
-1. Select your photo or video.
-2. Tap the ⋮ menu/options.
-3. Choose "Hide with Spoiler".
-4. Send the media again.
-
 Thank you for helping keep the group comfortable for everyone. 🙏
 """
 
@@ -79,7 +72,7 @@ def init_db():
 
 
 # ==========================
-# WEB SERVER (RENDER)
+# FLASK HEALTH CHECK
 # ==========================
 
 web_app = Flask(__name__)
@@ -104,7 +97,7 @@ def run_web():
 
 
 # ==========================
-# GET GROUP ID
+# GET CHAT ID
 # ==========================
 
 async def get_id(
@@ -119,7 +112,7 @@ async def get_id(
 
 
 # ==========================
-# BIRTHDAY SYSTEM
+# BIRTHDAY COMMANDS
 # ==========================
 
 async def set_birthday(
@@ -149,7 +142,7 @@ async def set_birthday(
     except ValueError:
 
         await update.message.reply_text(
-            "❌ Invalid format. Use MM/DD"
+            "❌ Invalid date format. Use MM/DD"
         )
 
         return
@@ -271,7 +264,7 @@ async def remove_birthday(
 
 
 async def check_birthdays(
-    context: ContextTypes.DEFAULT_TYPE
+    app
 ):
 
     today = datetime.now().strftime("%m/%d")
@@ -299,15 +292,41 @@ async def check_birthdays(
 
     for username, chat_id in birthdays:
 
-        await context.bot.send_message(
+        await app.bot.send_message(
             chat_id=chat_id,
             text=(
                 f"🎉🎂 Happy Birthday {username}! 🎂🎉\n\n"
                 "Everyone help us wish them a wonderful birthday!\n"
-                "May your day be filled with happiness, "
-                "love, and good energy. 🥳"
+                "May your day be filled with happiness and good energy. 🥳"
             )
         )
+
+
+
+# ==========================
+# START SCHEDULER
+# ==========================
+
+async def post_init(app):
+
+    scheduler = AsyncIOScheduler()
+
+
+    scheduler.add_job(
+        check_birthdays,
+        "cron",
+        hour=9,
+        minute=0,
+        args=[app]
+    )
+
+
+    scheduler.start()
+
+
+    logging.info(
+        "🎂 Birthday scheduler started"
+    )
 
 
 
@@ -321,6 +340,7 @@ async def check_media(
 ):
 
     message = update.effective_message
+
 
     if not message:
         return
@@ -359,18 +379,17 @@ async def check_media(
 
 
 
-    # Allow spoiler media
+    # Allow spoiler
 
     if message.has_media_spoiler:
         return
 
 
 
-    # Remove media
-
     try:
 
         await message.delete()
+
 
         await context.bot.send_message(
             chat_id=message.chat.id,
@@ -386,14 +405,14 @@ async def check_media(
     except Exception as e:
 
         logging.exception(
-            "Delete error: %s",
+            "Media removal failed: %s",
             e
         )
 
 
 
 # ==========================
-# START BOT
+# MAIN
 # ==========================
 
 def main():
@@ -419,12 +438,11 @@ def main():
         Application
         .builder()
         .token(TOKEN)
+        .post_init(post_init)
         .build()
     )
 
 
-
-    # Media protection
 
     app.add_handler(
         MessageHandler(
@@ -437,9 +455,6 @@ def main():
         )
     )
 
-
-
-    # Commands
 
     app.add_handler(
         CommandHandler(
@@ -474,26 +489,9 @@ def main():
 
 
 
-    # Birthday scheduler
-
-    scheduler = AsyncIOScheduler()
-
-    scheduler.add_job(
-        check_birthdays,
-        "cron",
-        hour=9,
-        minute=0,
-        args=[app]
-    )
-
-    scheduler.start()
-
-
-
     logging.info(
-        "🎉 Melanated AZ Bot is running!"
+        "🎉 Melanated AZ Bot is starting..."
     )
-
 
 
     app.run_polling(
