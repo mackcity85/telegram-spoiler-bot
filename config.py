@@ -1,62 +1,17 @@
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
-# ==========================
-# TELEGRAM BOT TOKEN
-# ==========================
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-TOKEN = os.environ.get(
-    "BOT_TOKEN"
-)
+STARTUP_CHAT_ID = int(os.getenv("STARTUP_CHAT_ID", "0"))
 
+ADMIN_IDS = [
+    int(x.strip())
+    for x in os.getenv("ADMIN_IDS", "").split(",")
+    if x.strip()
+]
 
-# ==========================
-# STARTUP MESSAGE CHAT ID
-# ==========================
-
-STARTUP_CHAT_ID = os.environ.get(
-    "STARTUP_CHAT_ID"
-)
-
-
-# ==========================
-# DATABASE
-# ==========================
-
-DB_FILE = "melanatedaz.db"
-
-
-# ==========================
-# RAFFLE SETTINGS
-# ==========================
-
-RAFFLE_COST = "$5"
-
-RAFFLE_PAYMENT_INFO = """
-💰 Raffle Payment Information
-
-Entry Cost:
-$5 per entry
-
-Payment Options:
-
-Cash App:
-$YOUR_CASHAPP
-
-Venmo:
-@YOUR_VENMO
-
-PayPal:
-YOUR_PAYPAL
-
-After payment, send confirmation to an admin.
-"""
-
-
-# ==========================
-# COMMUNITY SETTINGS
-# ==========================
-
-BOT_NAME = "Melanated AZ Community Bot"
-
-COMMUNITY_NAME = "Melanated AZ"
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN is missing from .env")
