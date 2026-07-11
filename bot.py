@@ -13,6 +13,7 @@ from telegram.ext import (
 from config import BOT_TOKEN
 from database import initialize_database, update_member
 from moderation import check_media
+from welcome import WELCOME_MESSAGE
 
 
 # -----------------------------
@@ -38,7 +39,10 @@ def run_flask():
 # Commands
 # -----------------------------
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     await update.message.reply_text(
         "🔥 Melanated AZ Community Bot v4 is online!\n\n"
@@ -46,10 +50,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_id(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     await update.message.reply_text(
         f"Chat ID:\n{update.effective_chat.id}"
+    )
+
+
+async def rules(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        WELCOME_MESSAGE
     )
 
 
@@ -57,10 +74,15 @@ async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Activity Tracking
 # -----------------------------
 
-async def track_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def track_activity(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     if update.effective_user:
-        update_member(update.effective_user)
+        update_member(
+            update.effective_user
+        )
 
 
 # -----------------------------
@@ -71,6 +93,7 @@ def main():
 
     initialize_database()
 
+
     application = (
         Application
         .builder()
@@ -78,6 +101,8 @@ def main():
         .build()
     )
 
+
+    # Commands
 
     application.add_handler(
         CommandHandler(
@@ -96,6 +121,16 @@ def main():
 
 
     application.add_handler(
+        CommandHandler(
+            "rules",
+            rules
+        )
+    )
+
+
+    # Track activity
+
+    application.add_handler(
         MessageHandler(
             filters.ALL,
             track_activity
@@ -103,6 +138,8 @@ def main():
         group=1
     )
 
+
+    # Media protection
 
     application.add_handler(
         MessageHandler(
@@ -119,6 +156,7 @@ def main():
 
 
     application.run_polling()
+
 
 
 # -----------------------------
