@@ -1,160 +1,1416 @@
+# ==========================================================
+# Melanated AZ Bot v2.0
+# Part 1 - Foundation
+# ==========================================================
+
 import os
 import logging
+import sqlite3
+from datetime import datetime, date
+from threading import Thread
 
 from dotenv import load_dotenv
 from flask import Flask
-from threading import Thread
 
 from telegram import Update
 from telegram.ext import (
     Application,
-    ChatMemberHandler,
+    CommandHandler,
     MessageHandler,
+    ChatMemberHandler,
+    ContextTypes,
     filters
 )
 
-from commands import get_command_handlers
-from welcome import welcome_new_member
-from moderation import check_media
 
-
-# =========================
-# LOAD ENVIRONMENT
-# =========================
+# ==========================================================
+# ENVIRONMENT
+# ==========================================================
 
 load_dotenv()
 
-TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-if not TOKEN:
-    raise ValueError("BOT_TOKEN environment variable is missing")
+if not BOT_TOKEN:
+    raise ValueError(
+        "BOT_TOKEN environment variable is missing"
+    )
 
 
-# =========================
+# ==========================================================
 # LOGGING
-# =========================
+# ==========================================================
+
+os.makedirs("logs", exist_ok=True)
 
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    filename="logs/bot.log",
+    format="%(asctime)s | %(levelname)s | %(message)s",
     level=logging.INFO
 )
 
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
 
-# =========================
+logging.getLogger("").addHandler(console)
+
+logger = logging.getLogger(__name__)
+
+
+# ==========================================================
+# DATABASE
+# ==========================================================
+
+os.makedirs("database", exist_ok=True)
+
+DB_FILE = "database/bot.db"
+
+
+def get_db():
+
+    return sqlite3.connect(
+        DB_FILE
+    )
+
+
+def initialize_database():
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+
+    # Members
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS members (
+
+        user_id INTEGER PRIMARY KEY,
+
+        username TEXT,
+
+        first_name TEXT,
+
+        joined_date TEXT,
+
+        last_active TEXT,
+
+        chat_id INTEGER
+
+    )
+    """)
+
+
+    # Birthdays
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS birthdays (
+
+        user_id INTEGER PRIMARY KEY,
+
+        birthday TEXT,
+
+        username TEXT
+
+    )
+    """)
+
+
+    # Statistics
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS stats (
+
+        name TEXT PRIMARY KEY,
+
+        value INTEGER DEFAULT 0
+
+    )
+    """)
+
+
+    default_stats = [
+
+        ("photos_removed", 0),
+
+        ("videos_removed", 0),
+
+        ("birthdays_saved", 0)
+
+    ]
+
+
+    for stat in default_stats:
+
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO stats
+            (name,value)
+            VALUES (?,?)
+            """,
+            stat
+        )
+
+
+    conn.commit()
+    conn.close()
+
+
+    logger.info(
+        "Database initialized"
+    )
+
+
+
+# ==========================================================
 # FLASK HEALTH CHECK
-# =========================
+# ==========================================================
 
 flask_app = Flask(__name__)
 
 
 @flask_app.route("/")
-def home():
-    return "Melanated AZ Bot is running."
+def health():
+
+    return (
+        "🔥 Melanated AZ Bot v2.0 is running"
+    )
+
 
 
 def run_flask():
 
     flask_app.run(
+
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 10000))
+
+        port=int(
+            os.getenv(
+                "PORT",
+                10000
+            )
+        )
+
     )
 
 
-# =========================
-# WELCOME SYSTEM
-# =========================
+# ==========================================================
+# BASIC CONFIGURATION
+# ==========================================================
 
-async def new_member_handler(
+BOT_NAME = "Melanated AZ Bot"
+
+START_TIME = datetime.now()
+
+
+logger.info(
+    f"{BOT_NAME} loading..."
+)
+# ==========================================================
+# PART 2 - COMMAND SYSTEM
+# ==========================================================
+
+
+RULES_MESSAGE = """
+👑 Welcome to Melanated AZ 👑
+
+This space was created for networking, good vibes, and meeting like-minded adults.
+
+Please introduce yourself and review the pinned messages.
+
+📸 Profile picture required.
+
+Include:
+
+• Name
+• Age
+• Location
+• Status
+• What you're here for
+• DMs Open or Closed
+
+Example:
+
+King | 40 | Vail, AZ | Partnered | Networking and meeting like-minded people | DMs Open
+
+
+━━━━━━━━━━━━━━━
+
+📜 GROUP RULES 📜
+
+
+1️⃣ Consent Is Everything
+
+• No means no.
+• Respect boundaries.
+• No pressure, manipulation, or guilt trips.
+
+
+2️⃣ Respect Everyone
+
+• No bullying.
+• No harassment.
+• Different lifestyles and dynamics are welcome.
+
+
+3️⃣ Keep Drama Out
+
+• Handle personal issues privately.
+• Contact admins when needed.
+
+
+4️⃣ Privacy Matters
+
+• What is shared here stays here.
+• No screenshots or sharing conversations without permission.
+
+
+5️⃣ Adults Only
+
+• All members must be 18+.
+
+
+6️⃣ No Unsolicited Messages
+
+• Ask before sending DMs.
+• Respect someone's answer.
+
+
+7️⃣ Verify Before You Trust
+
+• Take your time getting to know people.
+• Prioritize safety.
+
+
+8️⃣ No Predatory Behavior
+
+• Manipulation, coercion, intimidation, or abuse will not be tolerated.
+
+
+9️⃣ Keep It Classy
+
+• Adult conversations are welcome.
+• Avoid spam and excessive explicit content.
+
+
+🔟 Community First
+
+• Support each other.
+• Welcome newcomers.
+
+
+━━━━━━━━━━━━━━━
+
+🔒 SPOILER MEDIA RULES
+
+Photos and videos must use:
+
+👁 Hide With Spoiler
+
+
+📱 Mobile:
+
+1. Select photo/video
+2. Open options
+3. Select Hide With Spoiler
+4. Send
+
+
+💻 Desktop:
+
+1. Select media
+2. Right-click preview
+3. Choose Hide With Spoiler
+
+
+━━━━━━━━━━━━━━━
+
+👑 ADMIN RULE
+
+Admins may remove anyone who negatively impacts the safety, privacy, or atmosphere of the group.
+
+
+Consent • Respect • Communication • Accountability
+"""
+
+
+HELP_MESSAGE = """
+👑 Melanated AZ Bot Commands
+
+/community
+
+/rules
+Show group rules
+
+/intro
+How to introduce yourself
+
+/spoiler
+How to send hidden media
+
+/birthday MM-DD
+Save your birthday
+
+/birthdays
+View upcoming birthdays
+
+/status
+Bot status
+
+/getid
+Show chat ID
+"""
+
+
+async def help_command(
     update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        HELP_MESSAGE
+    )
+
+
+
+async def rules_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        RULES_MESSAGE
+    )
+
+
+
+async def intro_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        """
+👑 Introduce Yourself 👑
+
+Please include:
+
+Name:
+Age:
+Location:
+Status:
+What you're here for:
+DMs Open or Closed:
+
+Example:
+
+King | 40 | Vail AZ | Partnered | Networking | DMs Open
+"""
+    )
+
+
+
+async def spoiler_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        """
+👁 How To Send Spoiler Media
+
+📱 Mobile:
+
+1. Choose your photo/video
+2. Open media options
+3. Select "Hide With Spoiler"
+4. Send
+
+
+💻 Desktop:
+
+1. Attach your media
+2. Right-click preview
+3. Select "Hide With Spoiler"
+4. Send
+
+
+All photos and videos must use spoilers.
+"""
+    )
+
+
+
+async def getid_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.message.reply_text(
+        f"Chat ID: {update.effective_chat.id}"
+    )
+
+
+
+async def status_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM members"
+    )
+
+    members = cursor.fetchone()[0]
+
+    conn.close()
+
+
+    await update.message.reply_text(
+        f"""
+🤖 Melanated AZ Bot
+
+Status: Online
+
+Members Tracked:
+{members}
+
+Database:
+Connected
+
+Started:
+{START_TIME}
+"""
+    )
+
+
+
+async def birthday_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not context.args:
+
+        await update.message.reply_text(
+            "Usage: /birthday MM-DD"
+        )
+
+        return
+
+
+    birthday = context.args[0]
+
+    user = update.effective_user
+
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO birthdays
+        VALUES (?,?,?)
+        """,
+        (
+            user.id,
+            birthday,
+            user.username
+        )
+    )
+
+
+    cursor.execute(
+        """
+        UPDATE stats
+        SET value=value+1
+        WHERE name='birthdays_saved'
+        """
+    )
+
+
+    conn.commit()
+    conn.close()
+
+
+    await update.message.reply_text(
+        f"🎂 Birthday saved: {birthday}"
+    )
+
+
+
+async def birthdays_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+
+    cursor.execute(
+        """
+        SELECT birthday, username
+        FROM birthdays
+        ORDER BY birthday
+        """
+    )
+
+
+    results = cursor.fetchall()
+
+    conn.close()
+
+
+    if not results:
+
+        await update.message.reply_text(
+            "No birthdays saved yet."
+        )
+
+        return
+
+
+    message = "🎂 Upcoming Birthdays\n\n"
+
+
+    for birthday, username in results:
+
+        name = username or "Member"
+
+        message += (
+            f"🎉 {name} - {birthday}\n"
+        )
+
+
+    await update.message.reply_text(
+        message
+    )
+
+
+
+def update_activity(user, chat_id):
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO members
+        VALUES (?,?,?,?,?,?)
+        """,
+        (
+            user.id,
+            user.username,
+            user.first_name,
+            datetime.now().strftime("%Y-%m-%d"),
+            datetime.now().strftime("%Y-%m-%d"),
+            chat_id
+        )
+    )
+
+
+    conn.commit()
+    conn.close()
+    # ==========================================================
+# PART 3 - WELCOME SYSTEM & MEDIA PROTECTION
+# ==========================================================
+
+
+WELCOME_MESSAGE = """
+🔥 Welcome to Melanated AZ 🔥
+
+👑 Welcome to the community 👑
+
+This space was created for networking, connection, good energy, and meeting like-minded adults.
+
+Before participating:
+
+📸 Profile picture required
+
+Please introduce yourself:
+
+• Name
+• Age
+• Location
+• Status
+• What you're here for
+• DMs Open or Closed
+
+
+━━━━━━━━━━━━━━━
+
+⚠️ MEDIA SPOILER REQUIREMENT ⚠️
+
+All photos and videos must be sent using:
+
+👁 Hide With Spoiler
+
+
+📱 Mobile:
+
+1. Select photo/video
+2. Open media options
+3. Choose "Hide With Spoiler"
+4. Send
+
+
+💻 Desktop:
+
+1. Select media
+2. Right-click preview
+3. Choose "Hide With Spoiler"
+4. Send
+
+
+━━━━━━━━━━━━━━━
+
+Remember:
+
+Consent • Respect • Communication • Accountability
+
+Enjoy the room! ❤️👑
+"""
+
+
+
+MEDIA_WARNING = """
+⚠️ Media Removed
+
+Photos and videos must be sent using Telegram's:
+
+👁 Hide With Spoiler
+
+Please resend your media using the spoiler option.
+
+Thank you for helping keep Melanated AZ comfortable for everyone. 👑
+"""
+
+
+
+async def welcome_new_member(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not update.chat_member:
+
+        return
+
+
+    member = update.chat_member.new_chat_member
+
+
+    if member.status == "member":
+
+        user = member.user
+
+
+        await context.bot.send_message(
+
+            chat_id=update.effective_chat.id,
+
+            text=WELCOME_MESSAGE
+
+        )
+
+
+        update_activity(
+
+            user,
+
+            update.effective_chat.id
+
+        )
+
+
+        logger.info(
+
+            f"Welcomed {user.id}"
+
+        )
+
+
+
+# ==========================================================
+# TRACK ALL MEMBER ACTIVITY
+# ==========================================================
+
+
+async def track_messages(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if update.effective_user:
+
+        update_activity(
+
+            update.effective_user,
+
+            update.effective_chat.id
+
+        )
+
+
+
+# ==========================================================
+# ADMIN CHECK
+# ==========================================================
+
+
+async def is_admin(
+    update,
     context
 ):
 
-    await welcome_new_member(
-        update,
-        context
-    )
+    try:
+
+        member = await context.bot.get_chat_member(
+
+            update.effective_chat.id,
+
+            update.effective_user.id
+
+        )
 
 
-# =========================
-# STARTUP
-# =========================
+        return member.status in [
 
-async def startup(app):
+            "administrator",
 
-    print("🔥 Melanated AZ Bot Started")
+            "creator"
 
-    commands = get_command_handlers()
-
-    print(f"Loaded {len(commands)} commands")
-
-    await app.bot.set_my_commands(
-        [
-            ("rules", "View community rules"),
-            ("intro", "Introduction format"),
-            ("spoiler", "Media spoiler instructions"),
-            ("help", "Bot help"),
         ]
+
+    except:
+
+        return False
+
+
+
+# ==========================================================
+# PHOTO SPOILER PROTECTION
+# ==========================================================
+
+
+async def photo_protection(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+
+    if not update.message:
+
+        return
+
+
+    if not update.message.photo:
+
+        return
+
+
+    if update.message.has_media_spoiler:
+
+        return
+
+
+    if await is_admin(update, context):
+
+        return
+
+
+
+    try:
+
+        await update.message.delete()
+
+
+        conn = get_db()
+
+        cursor = conn.cursor()
+
+
+        cursor.execute(
+
+            """
+            UPDATE stats
+            SET value=value+1
+            WHERE name='photos_removed'
+            """
+
+        )
+
+
+        conn.commit()
+
+        conn.close()
+
+
+
+        await context.bot.send_message(
+
+            chat_id=update.effective_chat.id,
+
+            text=MEDIA_WARNING
+
+        )
+
+
+    except Exception as e:
+
+        logger.error(
+
+            f"Photo removal error: {e}"
+
+        )
+
+
+
+# ==========================================================
+# VIDEO SPOILER PROTECTION
+# ==========================================================
+
+
+async def video_protection(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+
+    if not update.message:
+
+        return
+
+
+    if not update.message.video:
+
+        return
+
+
+    if update.message.has_media_spoiler:
+
+        return
+
+
+    if await is_admin(update, context):
+
+        return
+
+
+
+    try:
+
+        await update.message.delete()
+
+
+        conn = get_db()
+
+        cursor = conn.cursor()
+
+
+        cursor.execute(
+
+            """
+            UPDATE stats
+            SET value=value+1
+            WHERE name='videos_removed'
+            """
+
+        )
+
+
+        conn.commit()
+
+        conn.close()
+
+
+
+        await context.bot.send_message(
+
+            chat_id=update.effective_chat.id,
+
+            text=MEDIA_WARNING
+
+        )
+
+
+
+    except Exception as e:
+
+        logger.error(
+
+            f"Video removal error: {e}"
+
+        )
+        # ==========================================================
+# PART 4 - SCHEDULER, STARTUP & MAIN BOT
+# ==========================================================
+
+
+from telegram.ext import JobQueue
+
+
+
+# ==========================================================
+# BIRTHDAY CHECKER
+# ==========================================================
+
+
+async def birthday_check(
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    today = datetime.now().strftime("%m-%d")
+
+
+    conn = get_db()
+
+    cursor = conn.cursor()
+
+
+    cursor.execute(
+
+        """
+        SELECT username
+        FROM birthdays
+        WHERE birthday=?
+        """,
+
+        (today,)
+
     )
 
 
-# =========================
+    birthdays = cursor.fetchall()
+
+
+    conn.close()
+
+
+
+    for birthday in birthdays:
+
+        username = birthday[0] or "Member"
+
+
+        await context.bot.send_message(
+
+            chat_id=context.job.chat_id,
+
+            text=f"""
+🎂🎉 Happy Birthday {username}! 🎉🎂
+
+The Melanated AZ family wishes you an amazing day!
+
+Enjoy your special day. 👑❤️
+"""
+
+        )
+
+
+
+
+
+# ==========================================================
+# COMMUNITY CHECK-IN
+# ==========================================================
+
+
+async def community_check(
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    logger.info(
+        "Running community check"
+    )
+
+
+    # Future expansion:
+    #
+    # Find members inactive 30 days
+    # Send friendly reminder
+    # Thank active members
+    #
+
+    return
+
+
+
+
+
+# ==========================================================
+# PIN CLEANUP
+# ==========================================================
+
+
+async def pin_cleanup(
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    logger.info(
+
+        "Pin cleanup check completed"
+
+    )
+
+
+    # Telegram limits pin history access.
+    # Framework added for future cleanup rules.
+
+
+
+
+
+# ==========================================================
+# COMMAND LOADER
+# ==========================================================
+
+
+def register_commands(app):
+
+
+    app.add_handler(
+
+        CommandHandler(
+
+            "help",
+
+            help_command
+
+        )
+
+    )
+
+
+    app.add_handler(
+
+        CommandHandler(
+
+            "rules",
+
+            rules_command
+
+        )
+
+    )
+
+
+    app.add_handler(
+
+        CommandHandler(
+
+            "intro",
+
+            intro_command
+
+        )
+
+    )
+
+
+    app.add_handler(
+
+        CommandHandler(
+
+            "spoiler",
+
+            spoiler_command
+
+        )
+
+    )
+
+
+    app.add_handler(
+
+        CommandHandler(
+
+            "getid",
+
+            getid_command
+
+        )
+
+    )
+
+
+    app.add_handler(
+
+        CommandHandler(
+
+            "status",
+
+            status_command
+
+        )
+
+    )
+
+
+    app.add_handler(
+
+        CommandHandler(
+
+            "birthday",
+
+            birthday_command
+
+        )
+
+    )
+
+
+    app.add_handler(
+
+        CommandHandler(
+
+            "birthdays",
+
+            birthdays_command
+
+        )
+
+    )
+
+
+    logger.info(
+
+        "Commands loaded"
+
+    )
+
+
+
+
+
+# ==========================================================
+# STARTUP
+# ==========================================================
+
+
+async def startup(
+    app: Application
+):
+
+
+    logger.info(
+
+        "🔥 Melanated AZ Bot Started"
+
+    )
+
+
+    logger.info(
+
+        "✅ Commands Active"
+
+    )
+
+
+    logger.info(
+
+        "✅ Welcome System Active"
+
+    )
+
+
+    logger.info(
+
+        "✅ Media Protection Active"
+
+    )
+
+
+    logger.info(
+
+        "✅ Birthday System Active"
+
+    )
+
+
+
+# ==========================================================
 # MAIN
-# =========================
+# ==========================================================
+
 
 def main():
 
+
+    initialize_database()
+
+
     Thread(
+
         target=run_flask,
+
         daemon=True
+
     ).start()
 
 
+
     app = (
+
         Application
+
         .builder()
-        .token(TOKEN)
+
+        .token(BOT_TOKEN)
+
         .post_init(startup)
+
         .build()
+
     )
 
 
-    # =====================
-    # COMMANDS
-    # =====================
 
-    for handler in get_command_handlers():
-        app.add_handler(handler)
+    register_commands(app)
 
 
-    # =====================
-    # WELCOME NEW MEMBERS
-    # =====================
+
+    # Welcome new members
 
     app.add_handler(
+
         ChatMemberHandler(
-            new_member_handler,
+
+            welcome_new_member,
+
             ChatMemberHandler.CHAT_MEMBER
+
         )
+
     )
 
 
-    # =====================
-    # MEDIA PROTECTION
-    # =====================
+
+    # Track messages
 
     app.add_handler(
+
         MessageHandler(
-            filters.PHOTO
-            | filters.VIDEO,
-            check_media
-        )
+
+            filters.ALL,
+
+            track_messages
+
+        ),
+
+        group=10
+
     )
 
 
-    print("🚀 Starting Telegram Bot")
 
-    app.run_polling()
+    # Photos
+
+    app.add_handler(
+
+        MessageHandler(
+
+            filters.PHOTO,
+
+            photo_protection
+
+        ),
+
+        group=1
+
+    )
+
+
+
+    # Videos
+
+    app.add_handler(
+
+        MessageHandler(
+
+            filters.VIDEO,
+
+            video_protection
+
+        ),
+
+        group=1
+
+    )
+
+
+
+    # Scheduler
+
+    if app.job_queue:
+
+
+        app.job_queue.run_daily(
+
+            birthday_check,
+
+            time=datetime.strptime(
+
+                "09:00",
+
+                "%H:%M"
+
+            ).time()
+
+        )
+
+
+        app.job_queue.run_repeating(
+
+            community_check,
+
+            interval=2592000,
+
+            first=60
+
+        )
+
+
+        app.job_queue.run_repeating(
+
+            pin_cleanup,
+
+            interval=604800,
+
+            first=300
+
+        )
+
+
+
+    logger.info(
+
+        "🚀 Starting Telegram polling"
+
+    )
+
+
+
+    app.run_polling(
+
+        allowed_updates=[
+
+            Update.MESSAGE,
+
+            Update.CHAT_MEMBER
+
+        ]
+
+    )
+
+
 
 
 if __name__ == "__main__":
+
     main()
