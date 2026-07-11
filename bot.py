@@ -1,4 +1,3 @@
-import asyncio
 import threading
 
 from flask import Flask
@@ -17,7 +16,7 @@ from moderation import check_media
 
 
 # -----------------------------
-# Flask Health Check (Render)
+# Flask Health Check
 # -----------------------------
 
 app = Flask(__name__)
@@ -39,47 +38,36 @@ def run_flask():
 # Commands
 # -----------------------------
 
-async def start(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     await update.message.reply_text(
         "🔥 Melanated AZ Community Bot v4 is online!\n\n"
         "Community protection features are active."
     )
 
 
-async def get_id(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-    chat = update.effective_chat
+async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
-        f"Chat ID:\n{chat.id}"
+        f"Chat ID:\n{update.effective_chat.id}"
     )
 
 
 # -----------------------------
-# Member Activity Tracking
+# Activity Tracking
 # -----------------------------
 
-async def track_activity(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def track_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if update.effective_user:
-        update_member(
-            update.effective_user
-        )
+        update_member(update.effective_user)
 
 
 # -----------------------------
-# Main Bot
+# Start Bot
 # -----------------------------
 
-async def main():
+def main():
 
     initialize_database()
 
@@ -91,13 +79,13 @@ async def main():
     )
 
 
-    # Commands
     application.add_handler(
         CommandHandler(
             "start",
             start
         )
     )
+
 
     application.add_handler(
         CommandHandler(
@@ -107,7 +95,6 @@ async def main():
     )
 
 
-    # Track users
     application.add_handler(
         MessageHandler(
             filters.ALL,
@@ -117,7 +104,6 @@ async def main():
     )
 
 
-    # Media protection
     application.add_handler(
         MessageHandler(
             filters.ALL,
@@ -132,9 +118,12 @@ async def main():
     )
 
 
-    await application.run_polling()
+    application.run_polling()
 
 
+# -----------------------------
+# Launch
+# -----------------------------
 
 if __name__ == "__main__":
 
@@ -144,6 +133,4 @@ if __name__ == "__main__":
     ).start()
 
 
-    asyncio.run(
-        main()
-    )
+    main()
