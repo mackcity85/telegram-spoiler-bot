@@ -921,14 +921,6 @@ async def media_protection(
         logger.error(
             f"{media_type} ERROR: {e}"
         )
-# ==========================================================
-# PART 4 - SCHEDULER, STARTUP & MAIN BOT
-# ==========================================================
-
-
-from telegram.ext import JobQueue
-
-
 
 # ==========================================================
 # BIRTHDAY SYSTEM (MM/DD FORMAT)
@@ -1227,7 +1219,26 @@ async def pin_cleanup(
 # COMMAND LOADER
 # ==========================================================
 
+async def community_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
+    await update.message.reply_text(
+        """
+👑 Melanated AZ Community
+
+A place for:
+
+❤️ Connection
+🤝 Networking
+🗣 Conversation
+🎉 Events
+🌱 Building community
+
+Consent • Respect • Communication • Accountability
+"""
+    )
 def register_commands(app):
 
 
@@ -1322,6 +1333,13 @@ def register_commands(app):
     )
 
 
+    app.add_handler(
+    CommandHandler(
+        "community",
+        community_command
+    )
+)
+    
     app.add_handler(
 
         CommandHandler(
@@ -1531,15 +1549,8 @@ def main():
 
 
     app.run_polling(
-
-    allowed_updates=[
-    Update.MESSAGE,
-    Update.CHAT_MEMBER,
-    Update.MY_CHAT_MEMBER
-],
-
+    allowed_updates=Update.ALL_TYPES,
     drop_pending_updates=True
-
 )
 if __name__ == "__main__":
     main()
