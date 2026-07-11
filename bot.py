@@ -13,12 +13,7 @@ from telegram.ext import (
 from config import BOT_TOKEN
 from database import initialize_database, update_member
 from moderation import check_media
-from welcome import WELCOME_MESSAGE
 
-
-# -----------------------------
-# Flask Health Check
-# -----------------------------
 
 app = Flask(__name__)
 
@@ -35,64 +30,72 @@ def run_flask():
     )
 
 
-# -----------------------------
-# Commands
-# -----------------------------
+RULES_MESSAGE = """
+🔥 Melanated AZ Community Guidelines 🔥
 
-async def start(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+Welcome to the community!
+
+📌 Please remember:
+
+✅ Respect all members
+✅ Consent and communication matter
+✅ Protect everyone's privacy
+✅ What is shared here stays here
+
+⚠️ MEDIA SPOILER RULE
+
+All photos, videos, GIFs, and media must use:
+
+👁 Hide With Spoiler
+
+How to use:
+
+📱 Mobile:
+1. Select your photo/video
+2. Open media options
+3. Choose "Hide With Spoiler"
+4. Send
+
+💻 Desktop:
+1. Select your media
+2. Right-click the preview
+3. Choose "Hide With Spoiler"
+4. Send
+
+Thank you for helping keep Melanated AZ a safe space ❤️
+"""
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
-        "🔥 Melanated AZ Community Bot v4 is online!\n\n"
-        "Community protection features are active."
+        "🔥 Melanated AZ Community Bot v4 is online!"
     )
 
 
-async def get_id(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"Chat ID:\n{update.effective_chat.id}"
     )
 
 
-async def rules(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
-        WELCOME_MESSAGE
+        RULES_MESSAGE
     )
 
 
-# -----------------------------
-# Activity Tracking
-# -----------------------------
-
-async def track_activity(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def track_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if update.effective_user:
-        update_member(
-            update.effective_user
-        )
+        update_member(update.effective_user)
 
-
-# -----------------------------
-# Start Bot
-# -----------------------------
 
 def main():
 
     initialize_database()
-
 
     application = (
         Application
@@ -101,8 +104,6 @@ def main():
         .build()
     )
 
-
-    # Commands
 
     application.add_handler(
         CommandHandler(
@@ -128,8 +129,6 @@ def main():
     )
 
 
-    # Track activity
-
     application.add_handler(
         MessageHandler(
             filters.ALL,
@@ -138,8 +137,6 @@ def main():
         group=1
     )
 
-
-    # Media protection
 
     application.add_handler(
         MessageHandler(
@@ -158,17 +155,11 @@ def main():
     application.run_polling()
 
 
-
-# -----------------------------
-# Launch
-# -----------------------------
-
 if __name__ == "__main__":
 
     threading.Thread(
         target=run_flask,
         daemon=True
     ).start()
-
 
     main()
