@@ -135,13 +135,17 @@ def initialize_database():
 
     default_stats = [
 
-        ("photos_removed", 0),
+    ("photos_removed", 0),
 
-        ("videos_removed", 0),
+    ("videos_removed", 0),
 
-        ("birthdays_saved", 0)
+    ("gifs_removed", 0),
 
-    ]
+    ("documents_removed", 0),
+
+    ("birthdays_saved", 0)
+
+]
 
 
     for stat in default_stats:
