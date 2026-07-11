@@ -802,10 +802,11 @@ async def photo_protection(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    message = update.message
-
-    if not message:
+    if not update.message:
         return
+
+
+    message = update.message
 
 
     if not message.photo:
@@ -826,18 +827,24 @@ async def photo_protection(
 
     # Allow spoiler photos
     if spoiler:
+
         logger.info(
-            "Spoiler photo allowed"
+            "PHOTO ALLOWED | Spoiler detected"
         )
+
         return
+
 
 
     # Allow admins
     if await is_admin(update, context):
+
         logger.info(
-            "Admin photo allowed"
+            "PHOTO ALLOWED | Admin"
         )
+
         return
+
 
 
     try:
@@ -846,13 +853,14 @@ async def photo_protection(
 
 
         logger.info(
-            "Deleted non-spoiler photo"
+            "PHOTO REMOVED | No spoiler"
         )
 
 
         conn = get_db()
 
         cursor = conn.cursor()
+
 
         cursor.execute(
             """
@@ -864,7 +872,6 @@ async def photo_protection(
 
 
         conn.commit()
-
         conn.close()
 
 
@@ -881,9 +888,8 @@ async def photo_protection(
     except Exception as e:
 
         logger.error(
-            f"Photo removal error: {e}"
+            f"PHOTO ERROR: {e}"
         )
-
 
 
 # ==========================================================
@@ -895,11 +901,11 @@ async def video_protection(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    message = update.message
-
-
-    if not message:
+    if not update.message:
         return
+
+
+    message = update.message
 
 
     if not message.video:
@@ -924,7 +930,7 @@ async def video_protection(
     if spoiler:
 
         logger.info(
-            "Spoiler video allowed"
+            "VIDEO ALLOWED | Spoiler detected"
         )
 
         return
@@ -935,7 +941,7 @@ async def video_protection(
     if await is_admin(update, context):
 
         logger.info(
-            "Admin video allowed"
+            "VIDEO ALLOWED | Admin"
         )
 
         return
@@ -944,12 +950,11 @@ async def video_protection(
 
     try:
 
-
         await message.delete()
 
 
         logger.info(
-            "Deleted non-spoiler video"
+            "VIDEO REMOVED | No spoiler"
         )
 
 
@@ -957,6 +962,7 @@ async def video_protection(
         conn = get_db()
 
         cursor = conn.cursor()
+
 
 
         cursor.execute(
@@ -969,7 +975,6 @@ async def video_protection(
 
 
         conn.commit()
-
         conn.close()
 
 
@@ -983,11 +988,10 @@ async def video_protection(
         )
 
 
-
     except Exception as e:
 
         logger.error(
-            f"Video removal error: {e}"
+            f"VIDEO ERROR: {e}"
         )
 # ==========================================================
 # PART 4 - SCHEDULER, STARTUP & MAIN BOT
