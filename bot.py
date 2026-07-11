@@ -466,20 +466,11 @@ async def status_command(
     conn = get_db()
     cursor = conn.cursor()
 
-
     cursor.execute(
         "SELECT COUNT(*) FROM members"
     )
 
     members = cursor.fetchone()[0]
-
-
-    cursor.execute(
-        "SELECT COUNT(*) FROM birthdays"
-    )
-
-    birthdays = cursor.fetchone()[0]
-
 
     cursor.execute(
         """
@@ -491,7 +482,6 @@ async def status_command(
 
     photos_removed = cursor.fetchone()[0]
 
-
     cursor.execute(
         """
         SELECT value
@@ -501,7 +491,6 @@ async def status_command(
     )
 
     videos_removed = cursor.fetchone()[0]
-
 
     conn.close()
 
@@ -515,9 +504,6 @@ Status: Online ✅
 👥 Members Tracked:
 {members}
 
-🎂 Birthdays Saved:
-{birthdays}
-
 📸 Photos Removed:
 {photos_removed}
 
@@ -527,7 +513,7 @@ Status: Online ✅
 💾 Database:
 Connected ✅
 
-⏰ Started:
+🕒 Started:
 {START_TIME}
 """
     )
