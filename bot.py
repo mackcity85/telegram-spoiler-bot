@@ -346,6 +346,7 @@ HELP_MESSAGE = """
 👑 Melanated AZ Bot Commands
 
 /community
+About Melanated AZ community
 
 /rules
 Show group rules
