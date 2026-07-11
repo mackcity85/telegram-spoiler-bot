@@ -1,19 +1,17 @@
-from telegram import Update
-from telegram.ext import ContextTypes
-
-
 WELCOME_MESSAGE = """
 🔥 Welcome to Melanated AZ 🔥
 
-👑 Community Guidelines 👑
+👑 Welcome everyone!
 
-This space was created for networking, connection, good vibes, and meeting like-minded adults. Let's keep it respectful, safe, and enjoyable for everyone.
+This space was created for networking, good vibes, and meeting like-minded adults.
+
+Please take a moment to introduce yourself and review the group guidelines.
 
 ━━━━━━━━━━━━━━━
 
-📌 BEFORE PARTICIPATING
+📸 PROFILE REQUIREMENT
 
-📸 A profile picture is required.
+A profile picture is required.
 
 Please introduce yourself with:
 
@@ -30,93 +28,44 @@ King | 40 | Vail, AZ | Partnered | Looking to network, make connections, and mee
 
 ━━━━━━━━━━━━━━━
 
-📜 GROUP RULES 📜
+📜 COMMUNITY EXPECTATIONS
 
-1️⃣ Consent Is Everything
-• No means no.
-• Respect boundaries at all times.
-• No pressure, manipulation, or guilt trips.
+• Respect everyone and their boundaries.
+• No harassment, unwanted messages, or drama.
+• If someone says no or isn't interested, respect it and keep it moving.
+• Protect privacy — what is shared here stays here.
 
-2️⃣ Respect Everyone
-• No bullying, harassment, discrimination, or personal attacks.
-• Different lifestyles, dynamics, interests, and experience levels are welcome.
-• Disagreements are okay. Disrespect is not.
-
-3️⃣ Keep Drama Out
-• Personal issues stay private.
-• Do not bring outside conflicts into the group.
-• Contact an admin if help is needed.
-
-4️⃣ Privacy Matters
-• What is shared here stays here.
-• No screenshots, recordings, or sharing conversations without permission.
-
-5️⃣ Adults Only
-• All members must be 18+.
-
-6️⃣ No Unsolicited Messages
-• Ask before sending DMs.
-• Respect someone's answer if they decline.
-
-7️⃣ Verify Before You Trust
-• Take time to get to know people.
-• Prioritize your safety.
-
-8️⃣ No Predatory Behavior
-• Manipulation, coercion, intimidation, or abuse will not be tolerated.
-
-9️⃣ Keep It Classy
-• Adult conversations are welcome.
-• Avoid spam or attention-seeking behavior.
-
-🔟 Community First
-• Support one another.
-• Welcome new members.
-• Leave egos at the door.
+This is a safe space for adults to connect, vibe, and enjoy the community.
 
 ━━━━━━━━━━━━━━━
 
-⚠️ MEDIA SPOILER REQUIREMENT ⚠️
+🔒 NSFW MEDIA & SPOILERS
 
-All photos, videos, GIFs, and media must use Telegram:
+All photos, videos, GIFs, and media must use Telegram's:
 
 👁 Hide With Spoiler
+
+How to use:
+
+📱 Mobile:
+1. Select your photo/video
+2. Tap the options menu
+3. Select "Hide With Spoiler"
+4. Send
+
+💻 Desktop:
+1. Select your media
+2. Right-click the preview
+3. Select "Hide With Spoiler"
+4. Send
 
 This helps prevent accidental exposure and keeps the community comfortable.
 
 ━━━━━━━━━━━━━━━
 
-🤖 MELANATED AZ BOT FEATURES
-
-🔥 Media protection
-🎂 Birthday celebrations
-📅 Community check-ins
-👋 Welcome messages
-📌 Group management tools
-
-━━━━━━━━━━━━━━━
-
-👑 ADMIN RULE 👑
-
-Admins reserve the right to remove anyone whose behavior negatively impacts the safety, privacy, or atmosphere of the group.
-
-━━━━━━━━━━━━━━━
+📜 Use /rules to view the complete Melanated AZ guidelines.
 
 Consent • Respect • Communication • Accountability
 
-Thank you for helping make Melanated AZ a respectful and welcoming community. ❤️👑
+Welcome to Melanated AZ ❤️👑
 """
-
-
-async def welcome_new_member(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    chat = update.effective_chat
-
-    if chat:
-        await context.bot.send_message(
-            chat_id=chat.id,
-            text=WELCOME_MESSAGE
-        )
