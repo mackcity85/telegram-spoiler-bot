@@ -4,7 +4,8 @@ import random
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from config import DB_FILE
+from config import DB_FILE, RAFFLE_PAYMENT_INFO
+
 
 
 # ==========================
@@ -16,17 +17,27 @@ async def start_raffle(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not context.args:
+    if len(context.args) < 2:
 
         await update.message.reply_text(
+
             "Use:\n"
-            "/raffle_start Prize Name"
+            "/raffle_start amount prize\n\n"
+            "Example:\n"
+            "/raffle_start 5 $100 Gift Card"
+
         )
 
         return
 
 
-    prize = " ".join(context.args)
+
+    amount = context.args[0]
+
+    prize = " ".join(
+        context.args[1:]
+    )
+
 
     chat_id = update.effective_chat.id
 
@@ -52,13 +63,15 @@ async def start_raffle(
         (
             chat_id,
             prize,
+            amount,
             active
         )
-        VALUES (?, ?, 1)
+        VALUES (?, ?, ?, 1)
         """,
         (
             chat_id,
-            prize
+            prize,
+            amount
         )
     )
 
@@ -68,13 +81,18 @@ async def start_raffle(
     conn.close()
 
 
+
     await update.message.reply_text(
 
-        "🎉 RAFFLE STARTED 🎉\n\n"
+        "🎟️ RAFFLE OPEN 🎟️\n\n"
 
         f"🏆 Prize:\n{prize}\n\n"
 
-        "🎟 Enter with:\n"
+        f"💰 Entry Cost:\n${amount}\n\n"
+
+        f"{RAFFLE_PAYMENT_INFO}\n"
+
+        "After payment use:\n"
         "/enter"
 
     )
@@ -91,6 +109,7 @@ async def enter_raffle(
 ):
 
     user = update.effective_user
+
     chat = update.effective_chat
 
 
@@ -101,7 +120,7 @@ async def enter_raffle(
 
     cursor.execute(
         """
-        SELECT id
+        SELECT id, amount, prize
         FROM raffles
         WHERE chat_id=?
         AND active=1
@@ -118,13 +137,16 @@ async def enter_raffle(
         conn.close()
 
         await update.message.reply_text(
-            "❌ There is no active raffle."
+
+            "❌ No active raffle."
+
         )
 
         return
 
 
-    raffle_id = raffle[0]
+
+    raffle_id, amount, prize = raffle
 
 
     try:
@@ -152,11 +174,19 @@ async def enter_raffle(
         conn.commit()
 
 
+
         await update.message.reply_text(
 
-            f"🎟 {user.first_name} entered the raffle!"
+            "✅ You are entered!\n\n"
+
+            f"🏆 Prize:\n{prize}\n"
+
+            f"💰 Entry Cost: ${amount}\n\n"
+
+            "Good luck! 🍀"
 
         )
+
 
 
     except sqlite3.IntegrityError:
@@ -164,7 +194,7 @@ async def enter_raffle(
 
         await update.message.reply_text(
 
-            "⚠️ You are already entered!"
+            "⚠️ You are already entered."
 
         )
 
@@ -194,7 +224,7 @@ async def raffle_list(
 
     cursor.execute(
         """
-        SELECT id, prize
+        SELECT id
         FROM raffles
         WHERE chat_id=?
         AND active=1
@@ -208,16 +238,14 @@ async def raffle_list(
 
     if not raffle:
 
-        conn.close()
-
         await update.message.reply_text(
             "No active raffle."
         )
 
+        conn.close()
+
         return
 
-
-    raffle_id = raffle[0]
 
 
     cursor.execute(
@@ -226,7 +254,7 @@ async def raffle_list(
         FROM raffle_entries
         WHERE raffle_id=?
         """,
-        (raffle_id,)
+        (raffle[0],)
     )
 
 
@@ -236,17 +264,29 @@ async def raffle_list(
     conn.close()
 
 
+
     if not entries:
 
-        text = "🎟 No entries yet."
+        await update.message.reply_text(
 
-    else:
+            "🎟️ No entries yet."
 
-        text = "🎟 Current Entries:\n\n"
+        )
 
-        for i, entry in enumerate(entries,1):
+        return
 
-            text += f"{i}. {entry[0]}\n"
+
+
+    text = "🎟️ Current Entries:\n\n"
+
+
+    for i, entry in enumerate(entries, 1):
+
+        text += f"{i}. {entry[0]}\n"
+
+
+    text += f"\nTotal Entries: {len(entries)}"
+
 
 
     await update.message.reply_text(text)
@@ -270,6 +310,7 @@ async def draw_raffle(
     cursor = conn.cursor()
 
 
+
     cursor.execute(
         """
         SELECT id, prize
@@ -295,7 +336,9 @@ async def draw_raffle(
         return
 
 
+
     raffle_id, prize = raffle
+
 
 
     cursor.execute(
@@ -311,18 +354,23 @@ async def draw_raffle(
     entries = cursor.fetchall()
 
 
+
     if not entries:
 
         conn.close()
 
         await update.message.reply_text(
-            "Nobody entered the raffle."
+
+            "No entries."
+
         )
 
         return
 
 
+
     winner = random.choice(entries)[0]
+
 
 
     cursor.execute(
@@ -345,9 +393,9 @@ async def draw_raffle(
 
         "🎉 RAFFLE WINNER 🎉\n\n"
 
-        f"🏆 {winner}\n\n"
+        f"🏆 Prize:\n{prize}\n\n"
 
-        f"Prize:\n{prize}\n\n"
+        f"👑 Winner:\n{winner}\n\n"
 
         "Congratulations! 💜"
 
