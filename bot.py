@@ -7,7 +7,7 @@ import os
 import logging
 import sqlite3
 import asyncio
-from datetime import datetime, date
+from datetime import datetime
 from threading import Thread
 
 from dotenv import load_dotenv
@@ -69,9 +69,12 @@ DB_FILE = "database/bot.db"
 
 def get_db():
 
-    return sqlite3.connect(
-        DB_FILE
+    conn = sqlite3.connect(
+        DB_FILE,
+        check_same_thread=False
     )
+
+    return conn
 
 
 def initialize_database():
