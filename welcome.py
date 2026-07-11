@@ -5,36 +5,92 @@ from telegram.ext import ContextTypes
 WELCOME_MESSAGE = """
 🔥 Welcome to Melanated AZ 🔥
 
-This is a community built around connection, respect, and good energy.
+👑 Community Guidelines 👑
 
-Please take a moment to review our community expectations:
+This space was created for networking, connection, good vibes, and meeting like-minded adults. Let's keep it respectful, safe, and enjoyable for everyone.
 
-━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━
 
-📌 COMMUNITY GUIDELINES
+📌 BEFORE PARTICIPATING
 
-✅ Respect everyone
-Treat members with kindness and respect. Consent and communication matter.
+📸 A profile picture is required.
 
-✅ Protect privacy
-What is shared in this community stays in this community.
+Please introduce yourself with:
 
-✅ Introductions
-New members are encouraged to introduce themselves and connect with the community.
+• Name
+• Age
+• Location
+• Status (Single, Partnered, Poly, etc.)
+• What you're here for
+• DMs Open or Closed
 
-━━━━━━━━━━━━━━
+Example:
 
-⚠️ MEDIA SPOILER REQUIREMENT
+King | 40 | Vail, AZ | Partnered | Looking to network, make connections, and meet like-minded people | DMs Open
+
+━━━━━━━━━━━━━━━
+
+📜 GROUP RULES 📜
+
+1️⃣ Consent Is Everything
+• No means no.
+• Respect boundaries at all times.
+• No pressure, manipulation, or guilt trips.
+
+2️⃣ Respect Everyone
+• No bullying, harassment, discrimination, or personal attacks.
+• Different lifestyles, dynamics, interests, and experience levels are welcome.
+• Disagreements are okay. Disrespect is not.
+
+3️⃣ Keep Drama Out
+• Personal issues stay private.
+• Do not bring outside conflicts into the group.
+• Contact an admin if help is needed.
+
+4️⃣ Privacy Matters
+• What is shared here stays here.
+• No screenshots, recordings, or sharing conversations without permission.
+• Protect everyone's privacy.
+
+5️⃣ Adults Only
+• All members must be 18+.
+• No minors or inappropriate discussions involving minors.
+
+6️⃣ No Unsolicited Messages
+• Ask before sending DMs.
+• Respect someone's answer if they decline.
+• Repeated unwanted contact may result in removal.
+
+7️⃣ Verify Before You Trust
+• Take time to get to know people.
+• Prioritize your safety when meeting others.
+• The group is not responsible for individual interactions.
+
+8️⃣ No Predatory Behavior
+• Manipulation, coercion, intimidation, or abuse will not be tolerated.
+• Titles, roles, or dynamics never override consent.
+
+9️⃣ Keep It Classy
+• Adult conversations are welcome.
+• Avoid excessive explicit content, spam, or attention-seeking behavior.
+• Remember there are real people behind every profile.
+
+🔟 Community First
+• Support one another.
+• Welcome new members.
+• Leave egos at the door.
+
+━━━━━━━━━━━━━━━
+
+⚠️ MEDIA SPOILER REQUIREMENT ⚠️
 
 All photos, videos, GIFs, and media must be sent using Telegram's:
 
 👁 Hide With Spoiler
 
-How to use it:
-
 📱 Mobile:
 1. Select your photo/video
-2. Open the media options
+2. Open media options
 3. Choose "Hide With Spoiler"
 4. Send
 
@@ -44,9 +100,9 @@ How to use it:
 3. Choose "Hide With Spoiler"
 4. Send
 
-This helps prevent accidental exposure and keeps the space comfortable for everyone.
+This helps prevent accidental exposure and keeps the community comfortable for everyone.
 
-━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━
 
 🤖 MELANATED AZ BOT FEATURES
 
@@ -56,7 +112,15 @@ This helps prevent accidental exposure and keeps the space comfortable for every
 👋 Welcome messages
 📌 Group management tools
 
-━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━
 
-Thank you for helping make Melanated AZ a respectful and welcoming community. ❤️
+👑 ADMIN RULE 👑
+
+Admins reserve the right to remove anyone whose behavior negatively impacts the safety, privacy, or atmosphere of the group.
+
+━━━━━━━━━━━━━━━
+
+Consent • Respect • Communication • Accountability
+
+Thank you for helping make Melanated AZ a respectful and welcoming community. ❤️👑
 """
