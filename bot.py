@@ -12,6 +12,7 @@ from telegram.ext import (
 )
 
 from config import TOKEN, STARTUP_CHAT_ID
+
 from database import init_db
 
 from birthdays import (
@@ -22,6 +23,13 @@ from birthdays import (
 
 from scheduler import start_scheduler
 
+from raffles import (
+    start_raffle,
+    enter_raffle,
+    raffle_list,
+    draw_raffle
+)
+
 
 # ==========================
 # LOGGING
@@ -31,6 +39,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 
 
 # ==========================
@@ -46,6 +55,7 @@ def home():
     return "Melanated AZ Bot v2 is running!"
 
 
+
 def run_web():
 
     port = int(
@@ -59,6 +69,7 @@ def run_web():
         host="0.0.0.0",
         port=port
     )
+
 
 
 # ==========================
@@ -94,6 +105,7 @@ async def get_id(
     )
 
 
+
 # ==========================
 # STARTUP
 # ==========================
@@ -122,7 +134,8 @@ async def startup(app):
 
                     "✅ Database Connected\n"
                     "✅ Birthday System Active\n"
-                    "✅ Scheduler Running\n\n"
+                    "✅ Scheduler Running\n"
+                    "✅ Raffle System Active\n\n"
 
                     "💜 Ready for the community!"
 
@@ -138,6 +151,7 @@ async def startup(app):
             )
 
 
+
 # ==========================
 # MAIN
 # ==========================
@@ -151,16 +165,21 @@ def main():
         )
 
 
-    # Database
+
+    # Initialize database
 
     init_db()
 
 
-    # Render web service
+
+    # Start Render web server
 
     threading.Thread(
+
         target=run_web,
+
         daemon=True
+
     ).start()
 
 
@@ -176,9 +195,11 @@ def main():
     )
 
 
+
     # ======================
     # COMMANDS
     # ======================
+
 
     application.add_handler(
         CommandHandler(
@@ -194,6 +215,12 @@ def main():
             get_id
         )
     )
+
+
+
+    # ======================
+    # BIRTHDAYS
+    # ======================
 
 
     application.add_handler(
@@ -221,9 +248,48 @@ def main():
 
 
 
+    # ======================
+    # RAFFLES
+    # ======================
+
+
+    application.add_handler(
+        CommandHandler(
+            "raffle_start",
+            start_raffle
+        )
+    )
+
+
+    application.add_handler(
+        CommandHandler(
+            "enter",
+            enter_raffle
+        )
+    )
+
+
+    application.add_handler(
+        CommandHandler(
+            "raffle_list",
+            raffle_list
+        )
+    )
+
+
+    application.add_handler(
+        CommandHandler(
+            "raffle_draw",
+            draw_raffle
+        )
+    )
+
+
+
     logging.info(
         "🚀 Starting Telegram bot..."
     )
+
 
 
     application.run_polling(
