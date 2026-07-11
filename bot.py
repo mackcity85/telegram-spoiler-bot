@@ -679,15 +679,32 @@ Enjoy the room! ❤️👑
 
 
 MEDIA_WARNING = """
-⚠️ Media Removed
+⚠️ Sorry, you media Removed
 
-Photos and videos must be sent using Telegram's:
+Photos and videos in Melanated AZ must be sent using:
 
 👁 Hide With Spoiler
 
-Please resend your media using the spoiler option.
 
-Thank you for helping keep Melanated AZ comfortable for everyone. 👑
+📱 Mobile:
+
+1️⃣ Select your photo or video
+2️⃣ Tap the ⋮ (three dots) menu
+3️⃣ Select "Hide With Spoiler"
+4️⃣ Send your media
+
+
+💻 Desktop:
+
+1️⃣ Attach your photo or video
+2️⃣ Right-click the media preview
+3️⃣ Select "Hide With Spoiler"
+4️⃣ Send your media
+
+
+Thank you for helping keep Melanated AZ comfortable and respectful for everyone. 👑
+
+Consent • Respect • Communication • Accountability
 """
 
 
