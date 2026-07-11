@@ -20,6 +20,8 @@ from birthdays import (
     remove_birthday
 )
 
+from scheduler import start_scheduler
+
 
 # ==========================
 # LOGGING
@@ -60,7 +62,7 @@ def run_web():
 
 
 # ==========================
-# COMMANDS
+# BASIC COMMANDS
 # ==========================
 
 async def ping(
@@ -74,6 +76,7 @@ async def ping(
     )
 
 
+
 async def get_id(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
@@ -82,9 +85,12 @@ async def get_id(
     user = update.effective_user
     chat = update.effective_chat
 
+
     await update.message.reply_text(
+
         f"👤 User ID: {user.id}\n"
         f"💬 Chat ID: {chat.id}"
+
     )
 
 
@@ -92,13 +98,14 @@ async def get_id(
 # STARTUP
 # ==========================
 
-async def startup_message(
-    app: Application
-):
+async def startup(app):
 
     logging.info(
         "🤖 Melanated AZ Bot v2 started"
     )
+
+
+    await start_scheduler(app)
 
 
     if STARTUP_CHAT_ID:
@@ -106,14 +113,21 @@ async def startup_message(
         try:
 
             await app.bot.send_message(
+
                 chat_id=STARTUP_CHAT_ID,
+
                 text=(
+
                     "🤖 Melanated AZ Bot v2 is online!\n\n"
-                    "✅ Core System Running\n"
+
                     "✅ Database Connected\n"
-                    "✅ Birthday System Enabled\n"
-                    "✅ Ready for the community 💜"
+                    "✅ Birthday System Active\n"
+                    "✅ Scheduler Running\n\n"
+
+                    "💜 Ready for the community!"
+
                 )
+
             )
 
         except Exception as e:
@@ -122,21 +136,6 @@ async def startup_message(
                 "Startup message failed: %s",
                 e
             )
-
-
-# ==========================
-# ERROR HANDLER
-# ==========================
-
-async def error_handler(
-    update,
-    context
-):
-
-    logging.error(
-        "Exception while processing update:",
-        exc_info=context.error
-    )
 
 
 # ==========================
@@ -152,8 +151,12 @@ def main():
         )
 
 
+    # Database
+
     init_db()
 
+
+    # Render web service
 
     threading.Thread(
         target=run_web,
@@ -161,17 +164,20 @@ def main():
     ).start()
 
 
+
     application = (
+
         Application
         .builder()
         .token(TOKEN)
-        .post_init(startup_message)
+        .post_init(startup)
         .build()
+
     )
 
 
     # ======================
-    # BASIC COMMANDS
+    # COMMANDS
     # ======================
 
     application.add_handler(
@@ -189,10 +195,6 @@ def main():
         )
     )
 
-
-    # ======================
-    # BIRTHDAY COMMANDS
-    # ======================
 
     application.add_handler(
         CommandHandler(
@@ -218,12 +220,6 @@ def main():
     )
 
 
-    # Error handler
-
-    application.add_error_handler(
-        error_handler
-    )
-
 
     logging.info(
         "🚀 Starting Telegram bot..."
@@ -233,6 +229,7 @@ def main():
     application.run_polling(
         drop_pending_updates=True
     )
+
 
 
 if __name__ == "__main__":
