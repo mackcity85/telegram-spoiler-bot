@@ -554,15 +554,50 @@ Status: ✅ Online
 # ==========================================================
 
 def update_activity(user, chat_id):
-    cursor.execute("""
-UPDATE stats
-SET value=value+1
-WHERE name='members_joined'
-""")
-    
 
     conn = get_db()
     cursor = conn.cursor()
+
+    cursor.execute("""
+    INSERT OR IGNORE INTO members
+    (
+        user_id,
+        username,
+        first_name,
+        joined_date,
+        last_active,
+        chat_id
+    )
+    VALUES (?,?,?,?,?,?)
+    """,
+    (
+        user.id,
+        user.username,
+        user.first_name,
+        datetime.now().strftime("%Y-%m-%d"),
+        datetime.now().strftime("%Y-%m-%d"),
+        chat_id
+    ))
+
+    cursor.execute("""
+    UPDATE members
+    SET
+        username=?,
+        first_name=?,
+        last_active=?,
+        chat_id=?
+    WHERE user_id=?
+    """,
+    (
+        user.username,
+        user.first_name,
+        datetime.now().strftime("%Y-%m-%d"),
+        chat_id,
+        user.id
+    ))
+
+    conn.commit()
+    conn.close()
 
 
     cursor.execute(
