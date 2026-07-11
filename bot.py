@@ -1076,8 +1076,8 @@ Example:
     conn.close()
 
 
-    await update.message.reply_text(
-        f"""
+    saved_message = await update.message.reply_text(
+    f"""
 🎂 Birthday saved!
 
 👑 {username}
@@ -1085,6 +1085,27 @@ Example:
 
 You have been added to the Melanated AZ birthday list.
 """
+)
+
+
+# Delete confirmation after 30 seconds
+
+await asyncio.sleep(30)
+
+
+try:
+
+    await saved_message.delete()
+
+    logger.info(
+        f"Deleted birthday saved confirmation for {username}"
+    )
+
+
+except Exception as e:
+
+    logger.error(
+        f"Birthday confirmation delete failed: {e}"
     )
 
 
