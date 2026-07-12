@@ -1,19 +1,24 @@
 # ==========================================================
-# Melanated AZ Bot
-# Rules and Guidelines
+# rules.py
+# Melanated AZ Bot v3
+# Community Rules
 # ==========================================================
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
 
-
 RULES_TEXT = """
+
 👑 Welcome to Melanated AZ 👑
 
-Please introduce yourself when you join and review the pinned messages.
+Welcome everyone. This space was created for networking,
+good vibes, and meeting like-minded people.
 
-📸 A profile picture is required.
+Please introduce yourself when joining and review the pinned
+messages.
+
+📸 Profile picture is required.
 
 Include:
 
@@ -26,19 +31,21 @@ Include:
 
 Example:
 
-King | 40 | Arizona | Partnered | 
-Looking to network, make connections, and meet like-minded people |
-DMs Open
+King | 40 | Arizona | Partnered | Looking to network,
+make connections, and meet like-minded people | DMs Open
+
 
 ━━━━━━━━━━━━━━━
+📜 GROUP GUIDELINES
+━━━━━━━━━━━━━━━
 
-📜 GROUP GUIDELINES 📜
 
 1️⃣ Consent Is Everything
 
 • No means no.
 • Respect boundaries at all times.
 • No pressure, manipulation, or guilt trips.
+
 
 2️⃣ Respect Everyone
 
@@ -47,62 +54,82 @@ DMs Open
 • No discrimination.
 • No personal attacks.
 
-Different lifestyles, dynamics, and experience levels are welcome.
+Different lifestyles, dynamics, and experience levels
+are welcome.
+
+Disagreements happen.
+Disrespect does not.
+
 
 3️⃣ Keep Drama Out
 
 • Personal issues stay private.
 • Do not bring outside conflicts into the group.
-• Contact admins if help is needed.
+• Contact an admin if assistance is needed.
+
 
 4️⃣ Privacy Matters
 
 • What is shared here stays here.
 • No screenshots or recordings without permission.
-• Do not share private information.
+• Do not share personal information.
+
 
 5️⃣ Adults Only
 
-• All members must be 18+.
-• No minors or inappropriate discussions involving minors.
+• Members must be 18+.
+• No minors or discussion involving minors.
 
-6️⃣ No Unwanted Messages
+
+6️⃣ No Unsolicited Messages
 
 • Ask before sending DMs.
-• Respect "No".
+• Respect someone's answer.
 • Repeated unwanted contact may result in removal.
+
 
 7️⃣ Verify Before You Trust
 
-• Protect your safety.
-• Vet people before meeting.
-• The group is not responsible for personal interactions.
+• Use good judgment.
+• Prioritize your safety.
+• The group is not responsible for individual interactions.
+
 
 8️⃣ No Predatory Behavior
 
-• Manipulation, coercion, intimidation, or abuse will not be tolerated.
+• Manipulation, coercion, intimidation,
+  or abuse will not be tolerated.
+
+Consent always comes first.
+
 
 9️⃣ Keep It Classy
 
 • Adult conversations are welcome.
-• Avoid spam and excessive attention seeking.
+• Avoid spam.
+• Avoid excessive explicit content.
+• Remember there are real people behind every profile.
+
 
 🔟 Community First
 
-• Support newcomers.
-• Communicate respectfully.
+• Support each other.
+• Help newcomers.
 • Leave egos at the door.
 
+
+━━━━━━━━━━━━━━━
+🔒 NSFW MEDIA & SPOILERS
 ━━━━━━━━━━━━━━━
 
-🔒 NSFW MEDIA & SPOILERS
 
 To hide text:
 
 1. Type your message.
 2. Highlight the text.
 3. Select "Spoiler".
-4. Send.
+4. Send the message.
+
 
 To hide photos/videos:
 
@@ -110,53 +137,32 @@ To hide photos/videos:
 2. Tap the three dots menu.
 3. Select:
 
-👁 Hide with Spoiler
+"Hide with Spoiler"
 
-4. Send your media.
+4. Send.
 
-All photos and videos must use Telegram spoiler protection.
 
-━━━━━━━━━━━━━━━
+Media without proper spoiler protection may be removed.
 
-🎉 GROUP ACTIVITIES
-
-Use:
-
-🎂 /birthday
-Save your birthday.
-
-🎲 /activities
-See current activities.
-
-🎟 /raffle
-Enter upcoming raffles.
-
-📜 /rules
-View these guidelines.
 
 ━━━━━━━━━━━━━━━
-
 👑 ADMIN RULE
+━━━━━━━━━━━━━━━
 
-Admins reserve the right to remove anyone who negatively impacts the safety, privacy, or atmosphere of the community.
+Admins reserve the right to remove anyone whose behavior
+negatively impacts the safety, privacy, or atmosphere
+of the community.
+
 
 Consent • Respect • Communication • Accountability
+
 """
 
-
-
-# ==========================================================
-# RULES COMMAND
-# ==========================================================
 
 async def rules(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
-    if not update.message:
-        return
-
 
     await update.message.reply_text(
         RULES_TEXT
