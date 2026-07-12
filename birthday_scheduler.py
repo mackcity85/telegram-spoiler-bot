@@ -1,48 +1,44 @@
 # ==========================================================
 # Melanated AZ Bot
 # birthday_scheduler.py
-# Birthday Announcement Scheduler
+# Automatic Birthday Announcements
 # ==========================================================
 
 import asyncio
-from datetime import datetime
+import logging
 
-from database import get_todays_birthdays
+from database import (
+    get_todays_birthdays
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 
 # ==========================================================
-# BIRTHDAY CHECK
+# BIRTHDAY CHECK LOOP
 # ==========================================================
 
 async def birthday_check(
-    application
+    application,
+    chat_id
 ):
+
+
+    logger.info(
+        "Birthday scheduler started"
+    )
+
 
     while True:
 
         try:
 
-            chat_id = application.bot_data.get(
-                "STARTUP_CHAT_ID"
-            )
-
-
-            if not chat_id:
-
-                await asyncio.sleep(86400)
-                continue
-
-
-
             birthdays = get_todays_birthdays()
 
 
-
-            for person in birthdays:
-
-
-                name = person["first_name"]
+            for birthday in birthdays:
 
 
                 await application.bot.send_message(
@@ -52,31 +48,34 @@ async def birthday_check(
                     text=f"""
 🎂🎉 HAPPY BIRTHDAY 🎉🎂
 
-Everyone help us wish
-👑 {name}
+Everyone help us wish:
+
+👑 {birthday['first_name']}
 
 a very Happy Birthday!
 
-May your day be filled with good energy,
-great memories, and amazing moments.
+Wishing you good vibes,
+great experiences, and an amazing year ahead!
 
-🔥 Melanated AZ Family
+🎉 Melanated AZ Family
 """
+
                 )
 
 
 
         except Exception as e:
 
-            print(
-                "Birthday scheduler error:",
-                e
+            logger.error(
+
+                f"Birthday scheduler error: {e}"
+
             )
 
 
 
-        # Check once every 24 hours
+        # Check every 24 hours
 
         await asyncio.sleep(
-            60 * 60 * 24
+            86400
         )
