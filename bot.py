@@ -1,6 +1,7 @@
 import os
 import logging
 import threading
+import asyncio
 
 from dotenv import load_dotenv
 from flask import Flask
@@ -10,6 +11,8 @@ from database import (
     update_member,
     save_birthday
 )
+
+from birthday_scheduler import birthday_check
 
 from telegram import Update
 from telegram.ext import (
@@ -29,10 +32,12 @@ load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 
+
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
+
 
 
 # ==========================================================
@@ -59,36 +64,32 @@ def run_flask():
     )
 
 
+
 # ==========================================================
 # COMMANDS
 # ==========================================================
 
-async def start(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "🔥 Melanated AZ Bot is online.\n\n"
-        "Media spoiler protection is active.\n"
-        "Use /rules for group rules.\n"
-        "Use /birthday MM/DD to save your birthday."
+        "Media spoiler protection is active.\n\n"
+        "Commands:\n"
+        "/rules\n"
+        "/birthday MM/DD"
     )
 
 
 
-async def rules(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "📜 Melanated AZ Rules\n\n"
         "1. Respect everyone.\n"
-        "2. No harassment, bullying, or drama.\n"
+        "2. No harassment or drama.\n"
         "3. Adults only community.\n"
         "4. Follow admin instructions.\n"
-        "5. Photos/videos must use Telegram spoiler protection."
+        "5. Use spoiler protection for media."
     )
 
 
@@ -97,10 +98,7 @@ async def rules(
 # BIRTHDAY COMMAND
 # ==========================================================
 
-async def birthday(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not context.args:
 
@@ -112,6 +110,14 @@ async def birthday(
 
 
     birthday_date = context.args[0]
+
+
+    update_member(
+        update.effective_user.id,
+        update.effective_chat.id,
+        update.effective_user.username,
+        update.effective_user.first_name
+    )
 
 
     save_birthday(
@@ -126,14 +132,12 @@ async def birthday(
     )
 
 
+
 # ==========================================================
 # MEMBER ACTIVITY TRACKING
 # ==========================================================
 
-async def track_activity(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def track_activity(update, context):
 
     if update.effective_user and update.effective_chat:
 
@@ -145,26 +149,27 @@ async def track_activity(
         )
 
 
+
 # ==========================================================
 # MEDIA SPOILER PROTECTION
 # ==========================================================
 
-async def media_check(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+async def media_check(update, context):
 
     message = update.message
+
 
     if not message:
         return
 
 
     has_media = (
+
         message.photo or
         message.video or
         message.animation or
         message.document
+
     )
 
 
@@ -180,20 +185,31 @@ async def media_check(
                     chat_id=message.chat.id,
                     text=(
                         f"⚠️ {message.from_user.first_name}, "
-                        "media must be posted using Telegram spoiler protection."
+                        "media must use Telegram spoiler protection."
                     )
                 )
 
 
             except Exception as e:
 
-                logging.error(
-                    f"Media removal error: {e}"
-                )
+                logging.error(e)
+
 
 
 # ==========================================================
-# START BOT
+# STARTUP TASKS
+# ==========================================================
+
+async def startup(application):
+
+    asyncio.create_task(
+        birthday_check(application)
+    )
+
+
+
+# ==========================================================
+# MAIN
 # ==========================================================
 
 def main():
@@ -218,11 +234,10 @@ def main():
         Application
         .builder()
         .token(TOKEN)
+        .post_init(startup)
         .build()
     )
 
-
-    # Commands
 
     application.add_handler(
         CommandHandler(
@@ -248,8 +263,6 @@ def main():
     )
 
 
-    # Media protection
-
     application.add_handler(
         MessageHandler(
             filters.PHOTO |
@@ -260,8 +273,6 @@ def main():
         )
     )
 
-
-    # Activity tracking
 
     application.add_handler(
         MessageHandler(
