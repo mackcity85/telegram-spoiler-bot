@@ -1,95 +1,68 @@
 import asyncio
+import logging
+
 from datetime import datetime, timedelta
 
 from database import (
-    get_inactive_members,
-    get_active_members
+    get_active_members,
+    get_inactive_members
 )
 
 
-# ==========================================================
-# 30 DAY MEMBER CHECK
-# ==========================================================
+logging.basicConfig(level=logging.INFO)
+
+
 
 async def activity_check(application):
 
-    while True:
-
-        cutoff = (
-            datetime.now() - timedelta(days=30)
-        ).strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(
+        "Activity scheduler started"
+    )
 
 
-        # -----------------------------
-        # Inactive Members
-        # -----------------------------
+    try:
 
-        inactive = get_inactive_members(
-            cutoff
+        while True:
+
+
+            cutoff = (
+                datetime.now()
+                -
+                timedelta(days=30)
+            )
+
+
+            active = get_active_members(
+                cutoff
+            )
+
+
+            inactive = get_inactive_members(
+                cutoff
+            )
+
+
+            logging.info(
+                f"Active members: {len(active)}"
+            )
+
+
+            logging.info(
+                f"Inactive members: {len(inactive)}"
+            )
+
+
+
+            await asyncio.sleep(
+                2592000
+            )
+
+
+
+    except asyncio.CancelledError:
+
+        logging.info(
+            "Activity scheduler stopped cleanly"
         )
 
-
-        for member in inactive:
-
-            user_id = member[0]
-            first_name = member[2]
-
-
-            try:
-
-                await application.bot.send_message(
-                    chat_id=user_id,
-                    text=(
-                        f"👋 Hey {first_name}!\n\n"
-                        "We haven't seen you around "
-                        "Melanated AZ lately.\n\n"
-                        "Just checking in — we hope "
-                        "to see you back soon! ❤️"
-                    )
-                )
-
-
-            except Exception:
-
-                pass
-
-
-
-        # -----------------------------
-        # Active Members
-        # -----------------------------
-
-        active = get_active_members(
-            cutoff
-        )
-
-
-        for member in active:
-
-            user_id = member[0]
-            first_name = member[2]
-
-
-            try:
-
-                await application.bot.send_message(
-                    chat_id=user_id,
-                    text=(
-                        f"🔥 Thank you {first_name}!\n\n"
-                        "We appreciate you being active "
-                        "in the Melanated AZ community."
-                    )
-                )
-
-
-            except Exception:
-
-                pass
-
-
-
-        # Run again every 30 days
-
-        await asyncio.sleep(
-            2592000
-        )
+        raise
