@@ -4,12 +4,15 @@
 # ==========================================================
 
 import os
-import asyncio
+import sys
+import atexit
 import logging
 import threading
+import asyncio
 
 from flask import Flask
 
+from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -17,7 +20,6 @@ from telegram.ext import (
     ContextTypes,
     filters
 )
-
 
 from config import BOT_TOKEN
 
@@ -39,6 +41,10 @@ from welcome import (
 
 from rules import rules
 
+from admin import (
+    admin_commands
+)
+
 from raffle import (
     start_raffle,
     enter_raffle,
@@ -56,53 +62,9 @@ from truth_dare import (
     dare
 )
 
-from media import (
-    check_media
-)
-
-from pin_cleanup import (
-    pin_cleanup_task
-)
-
-
-
-# ==========================================================
-# OPTIONAL SCHEDULERS
-# ==========================================================
-
-try:
-
-    from birthday_scheduler import (
-        start_birthday_scheduler
-    )
-
-except Exception:
-
-    start_birthday_scheduler = None
-
-
-
-try:
-
-    from activity_scheduler import (
-        start_activity_scheduler
-    )
-
-except Exception:
-
-    start_activity_scheduler = None
-
-
-
-try:
-
-    from admin import (
-        register_admin_commands
-    )
-
-except Exception:
-
-    register_admin_commands = None
+from birthday_scheduler import start_birthday_scheduler
+from activity_scheduler import start_activity_scheduler
+from pin_cleanup import pin_cleanup_task
 
 
 
@@ -111,14 +73,53 @@ except Exception:
 # ==========================================================
 
 logging.basicConfig(
-
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-
     level=logging.INFO
-
 )
 
 logger = logging.getLogger(__name__)
+
+
+
+# ==========================================================
+# SINGLE INSTANCE LOCK
+# ==========================================================
+
+LOCK_FILE = "bot.lock"
+
+
+def acquire_lock():
+
+    if os.path.exists(LOCK_FILE):
+
+        print(
+            "Existing bot.lock found. Removing stale lock."
+        )
+
+        os.remove(LOCK_FILE)
+
+
+    with open(LOCK_FILE,"w") as f:
+
+        f.write(
+            str(os.getpid())
+        )
+
+
+
+def release_lock():
+
+    if os.path.exists(LOCK_FILE):
+
+        os.remove(LOCK_FILE)
+
+
+
+acquire_lock()
+
+atexit.register(
+    release_lock
+)
 
 
 
@@ -145,7 +146,6 @@ def run_flask():
         )
     )
 
-
     app.run(
         host="0.0.0.0",
         port=port
@@ -154,76 +154,101 @@ def run_flask():
 
 
 # ==========================================================
-# ERROR HANDLER
+# MEDIA SPOILER PROTECTION
 # ==========================================================
 
-async def error_handler(
-    update,
+
+async def media_protection(
+    update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    logger.error(
-        "Bot Error",
-        exc_info=context.error
-    )
+    message = update.message
+
+
+    if not message:
+        return
 
 
 
-# ==========================================================
-# STARTUP
-# ==========================================================
+    # Allow GIFs
 
-async def startup(
-    application: Application
-):
+    if message.animation:
 
-    # Clear old Telegram polling session
+        return
+
+
+
+    # Check photos
+
+    bad_media = False
+
+
+    if message.photo:
+
+        if not message.has_media_spoiler:
+
+            bad_media = True
+
+
+
+    # Check videos
+
+    if message.video:
+
+        if not message.has_media_spoiler:
+
+            bad_media = True
+
+
+
+    if not bad_media:
+
+        return
+
+
 
     try:
 
-        await application.bot.get_updates(
-            offset=-1,
-            timeout=1
+        await message.delete()
+
+
+        warning = await update.effective_chat.send_message(
+
+            "⚠️ Photos and videos must be sent with SPOILER enabled.\n\n"
+            "Your message was removed."
+
         )
 
-    except Exception:
 
-        pass
-
-
-
-    await application.bot.delete_webhook(
-        drop_pending_updates=True
-    )
-
-
-    logger.info(
-        "🔥 Melanated AZ Bot is running"
-    )
-
-
-
-    # Start pin cleanup
-
-    asyncio.create_task(
-        pin_cleanup_task(
-            application
+        await asyncio.sleep(
+            30
         )
-    )
+
+
+        await warning.delete()
+
+
+
+    except Exception as e:
+
+        logger.error(
+            f"Media moderation error: {e}"
+        )
 
 
 
 # ==========================================================
-# TRACK ACTIVITY
+# TRACK MEMBERS
 # ==========================================================
 
-async def activity_tracker(
-    update,
-    context
+
+async def track_activity(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if update.effective_user and update.effective_chat:
-
+    if update.effective_user:
 
         update_member(
 
@@ -240,8 +265,63 @@ async def activity_tracker(
 
 
 # ==========================================================
+# ERROR HANDLER
+# ==========================================================
+
+
+async def error_handler(
+    update,
+    context
+):
+
+    logger.error(
+        "Bot error",
+        exc_info=context.error
+    )
+
+
+
+# ==========================================================
+# STARTUP
+# ==========================================================
+
+
+async def startup(
+    application: Application
+):
+
+    await application.bot.delete_webhook(
+        drop_pending_updates=True
+    )
+
+
+    logger.info(
+        "Melanated AZ Bot started"
+    )
+
+
+    start_birthday_scheduler(
+        application
+    )
+
+
+    start_activity_scheduler(
+        application
+    )
+
+
+    asyncio.create_task(
+        pin_cleanup_task(
+            application
+        )
+    )
+
+
+
+# ==========================================================
 # MAIN
 # ==========================================================
+
 
 def main():
 
@@ -250,15 +330,12 @@ def main():
 
 
 
-    # Flask for Render
-
-    threading.Thread(
-
+    flask_thread = threading.Thread(
         target=run_flask,
-
         daemon=True
+    )
 
-    ).start()
+    flask_thread.start()
 
 
 
@@ -276,29 +353,9 @@ def main():
 
 
 
-    # ======================================================
-    # ACTIVITY TRACKING
-    # ======================================================
-
-    application.add_handler(
-
-        MessageHandler(
-
-            filters.ALL,
-
-            activity_tracker
-
-        ),
-
-        group=-1
-
-    )
-
-
-
-    # ======================================================
-    # WELCOME
-    # ======================================================
+    # --------------------------
+    # Welcome
+    # --------------------------
 
     application.add_handler(
 
@@ -334,35 +391,51 @@ def main():
 
 
 
-    # ======================================================
-    # MEDIA PROTECTION
-    # ======================================================
+    # --------------------------
+    # Activity Tracking
+    # --------------------------
 
     application.add_handler(
 
         MessageHandler(
 
-            (
+            filters.ALL,
 
-                filters.PHOTO
+            track_activity
 
-                | filters.VIDEO
+        ),
 
-                | filters.Document.ALL
-
-            ),
-
-            check_media
-
-        )
+        group=5
 
     )
 
 
 
-    # ======================================================
-    # PROFILE CHECK
-    # ======================================================
+    # --------------------------
+    # Media Protection
+    # --------------------------
+
+    application.add_handler(
+
+        MessageHandler(
+
+            filters.PHOTO |
+            filters.VIDEO |
+            filters.ANIMATION,
+
+            media_protection
+
+        ),
+
+        group=1
+
+    )
+
+
+
+    # --------------------------
+    # Profile Check
+    # --------------------------
 
     application.add_handler(
 
@@ -378,21 +451,24 @@ def main():
 
 
 
-    # ======================================================
-    # ADMIN
-    # ======================================================
+    # --------------------------
+    # Admin
+    # --------------------------
 
-    if register_admin_commands:
+    application.add_handler(
 
-        register_admin_commands(
-            application
+        CommandHandler(
+            "admin",
+            admin_commands
         )
 
+    )
 
 
-    # ======================================================
-    # RAFFLE
-    # ======================================================
+
+    # --------------------------
+    # Raffle
+    # --------------------------
 
     application.add_handler(
 
@@ -427,7 +503,7 @@ def main():
     application.add_handler(
 
         CommandHandler(
-            "draw",
+            "drawraffle",
             draw_raffle
         )
 
@@ -435,9 +511,9 @@ def main():
 
 
 
-    # ======================================================
-    # TRIVIA
-    # ======================================================
+    # --------------------------
+    # Games
+    # --------------------------
 
     application.add_handler(
 
@@ -461,11 +537,6 @@ def main():
 
     )
 
-
-
-    # ======================================================
-    # TRUTH / DARE
-    # ======================================================
 
     application.add_handler(
 
@@ -501,8 +572,9 @@ def main():
 
 
 # ==========================================================
-# START
+# RUN
 # ==========================================================
+
 
 if __name__ == "__main__":
 
