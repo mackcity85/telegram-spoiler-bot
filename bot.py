@@ -1,20 +1,20 @@
 # ==========================================================
 # Melanated AZ Bot
-# bot.py
-# Main Integration File
+# Main Bot Controller
 # ==========================================================
 
 import os
-import asyncio
+import sys
+import atexit
 import logging
-from threading import Thread
+import threading
+import asyncio
 
 from flask import Flask
 
 from telegram import Update
 from telegram.ext import (
     Application,
-    ApplicationBuilder,
     CommandHandler,
     MessageHandler,
     ChatMemberHandler,
@@ -22,12 +22,13 @@ from telegram.ext import (
     filters
 )
 
+
 from config import BOT_TOKEN
 
-from database import (
-    initialize_database,
-    update_member
-)
+
+# ==========================================================
+# MODULE IMPORTS
+# ==========================================================
 
 from welcome import (
     welcome_new_member,
@@ -35,25 +36,22 @@ from welcome import (
     intro
 )
 
-from rules import rules
+from rules import (
+    rules
+)
 
 from admin import (
-    admin_help,
-    remove_member,
-    ban_member
+    admin_commands
 )
 
 from raffle import (
-    start_raffle,
-    enter_raffle,
-    raffle_status,
-    draw_raffle
+    raffle_command
 )
 
-from activity_scheduler import activity_check
-
-from birthday_scheduler import birthday_check
-
+from database import (
+    initialize_database,
+    update_member
+)
 
 
 # ==========================================================
@@ -61,18 +59,54 @@ from birthday_scheduler import birthday_check
 # ==========================================================
 
 logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 
-
-logger = logging.getLogger(
-    __name__
-)
-
+logger = logging.getLogger(__name__)
 
 
 # ==========================================================
-# FLASK HEALTH CHECK
+# SINGLE INSTANCE LOCK
+# ==========================================================
+
+LOCK_FILE = "bot.lock"
+
+
+def acquire_lock():
+
+    if os.path.exists(LOCK_FILE):
+
+        print(
+            "Another Melanated AZ Bot instance is running."
+        )
+
+        sys.exit(1)
+
+
+    with open(LOCK_FILE, "w") as f:
+
+        f.write(
+            str(os.getpid())
+        )
+
+
+def release_lock():
+
+    if os.path.exists(LOCK_FILE):
+
+        os.remove(LOCK_FILE)
+
+
+acquire_lock()
+
+atexit.register(
+    release_lock
+)
+
+
+# ==========================================================
+# FLASK HEALTH CHECK FOR RENDER
 # ==========================================================
 
 app = Flask(__name__)
@@ -81,8 +115,7 @@ app = Flask(__name__)
 @app.route("/")
 def home():
 
-    return "Melanated AZ Bot is running"
-
+    return "Melanated AZ Bot Online"
 
 
 def run_flask():
@@ -94,60 +127,10 @@ def run_flask():
         )
     )
 
-
     app.run(
         host="0.0.0.0",
         port=port
     )
-
-
-
-# ==========================================================
-# TRACK ALL MESSAGES
-# ==========================================================
-
-async def activity_tracker(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    if update.effective_user:
-
-        update_member(
-            update.effective_user.id,
-            update.effective_chat.id,
-            update.effective_user.username,
-            update.effective_user.first_name
-        )
-
-
-
-# ==========================================================
-# STARTUP TASKS
-# ==========================================================
-
-async def post_init(
-    application: Application
-):
-
-    print(
-        "Melanated AZ Bot is running"
-    )
-
-
-    application.create_task(
-        birthday_check(
-            application
-        )
-    )
-
-
-    application.create_task(
-        activity_check(
-            application
-        )
-    )
-
 
 
 # ==========================================================
@@ -155,8 +138,8 @@ async def post_init(
 # ==========================================================
 
 async def error_handler(
-    update,
-    context
+    update: object,
+    context: ContextTypes.DEFAULT_TYPE
 ):
 
     logger.error(
@@ -165,6 +148,22 @@ async def error_handler(
     )
 
 
+# ==========================================================
+# STARTUP
+# ==========================================================
+
+async def startup(
+    application: Application
+):
+
+    await application.bot.delete_webhook(
+        drop_pending_updates=True
+    )
+
+    print(
+        "Melanated AZ Bot is running"
+    )
+
 
 # ==========================================================
 # MAIN
@@ -172,164 +171,88 @@ async def error_handler(
 
 def main():
 
+
     initialize_database()
 
 
-    Thread(
+    # Start Render health server
+
+    flask_thread = threading.Thread(
         target=run_flask,
         daemon=True
-    ).start()
+    )
+
+    flask_thread.start()
 
 
 
     application = (
-
-        ApplicationBuilder()
-
-        .token(
-            BOT_TOKEN
-        )
-
-        .post_init(
-            post_init
-        )
-
+        Application.builder()
+        .token(BOT_TOKEN)
+        .post_init(startup)
         .build()
-
     )
 
 
-
-    # ------------------------------
-    # Member Events
-    # ------------------------------
+    # --------------------------
+    # Welcome System
+    # --------------------------
 
     application.add_handler(
-
         MessageHandler(
-
             filters.StatusUpdate.NEW_CHAT_MEMBERS,
-
             welcome_new_member
-
         )
-
-    )
-
-
-
-    application.add_handler(
-
-        MessageHandler(
-
-            filters.ALL,
-
-            activity_tracker
-
-        )
-
-    )
-
-
-
-    # ------------------------------
-    # Commands
-    # ------------------------------
-
-    application.add_handler(
-
-        CommandHandler(
-            "rules",
-            rules
-        )
-
     )
 
 
     application.add_handler(
-
         CommandHandler(
             "intro",
             intro
         )
-
     )
 
 
     application.add_handler(
-
         CommandHandler(
-            "admin",
-            admin_help
+            "rules",
+            rules
         )
-
     )
 
+
+    # --------------------------
+    # Profile Check
+    # --------------------------
 
     application.add_handler(
-
-        CommandHandler(
-            "remove",
-            remove_member
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            profile_check
         )
-
     )
 
 
-    application.add_handler(
+    # --------------------------
+    # Admin Commands
+    # --------------------------
 
-        CommandHandler(
-            "ban",
-            ban_member
-        )
-
+    admin_commands(
+        application
     )
 
 
-
-    # ------------------------------
+    # --------------------------
     # Raffle
-    # ------------------------------
+    # --------------------------
 
     application.add_handler(
-
-        CommandHandler(
-            "startraffle",
-            start_raffle
-        )
-
-    )
-
-
-    application.add_handler(
-
-        CommandHandler(
-            "enter",
-            enter_raffle
-        )
-
-    )
-
-
-    application.add_handler(
-
         CommandHandler(
             "raffle",
-            raffle_status
+            raffle_command
         )
-
     )
-
-
-    application.add_handler(
-
-        CommandHandler(
-            "drawraffle",
-            draw_raffle
-        )
-
-    )
-
 
 
     application.add_error_handler(
@@ -337,14 +260,23 @@ def main():
     )
 
 
+    try:
 
-    # ------------------------------
-    # Start Bot
-    # ------------------------------
+        application.run_polling(
+            drop_pending_updates=True
+        )
 
-    application.run_polling(
-        drop_pending_updates=True
-    )
+
+    except KeyboardInterrupt:
+
+        print(
+            "Bot stopped"
+        )
+
+
+    finally:
+
+        release_lock()
 
 
 
