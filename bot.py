@@ -1,13 +1,13 @@
 # ==========================================================
 # Melanated AZ Bot
 # bot.py
-# Main Controller
+# Main Bot Controller
 # ==========================================================
 
 import os
+import asyncio
 import logging
 import threading
-import asyncio
 
 
 from flask import Flask
@@ -22,15 +22,18 @@ from telegram.ext import (
 )
 
 
+
 from config import BOT_TOKEN
 
 
+
 # ==========================================================
-# IMPORT MODULES
+# MODULE IMPORTS
 # ==========================================================
 
 from database import (
-    initialize_database
+    initialize_database,
+    update_activity
 )
 
 
@@ -71,6 +74,18 @@ from admin import (
 )
 
 
+from trivia import (
+    trivia,
+    trivia_answer
+)
+
+
+from truth_dare import (
+    truth,
+    dare
+)
+
+
 from birthday_scheduler import (
     birthday_check
 )
@@ -78,6 +93,11 @@ from birthday_scheduler import (
 
 from activity_scheduler import (
     activity_check
+)
+
+
+from pin_cleanup import (
+    pin_cleanup_task
 )
 
 
@@ -160,7 +180,7 @@ async def error_handler(
 
     logger.error(
 
-        "Bot Error",
+        "Bot error",
 
         exc_info=context.error
 
@@ -169,7 +189,7 @@ async def error_handler(
 
 
 # ==========================================================
-# STARTUP
+# STARTUP TASKS
 # ==========================================================
 
 async def startup(
@@ -185,10 +205,9 @@ async def startup(
 
 
     print(
-
         "🔥 Melanated AZ Bot is running"
-
     )
+
 
 
     if STARTUP_CHAT_ID:
@@ -216,6 +235,37 @@ async def startup(
                 STARTUP_CHAT_ID
 
             )
+
+        )
+
+
+        asyncio.create_task(
+
+            pin_cleanup_task(
+
+                application
+
+            )
+
+        )
+
+
+
+# ==========================================================
+# ACTIVITY TRACKER
+# ==========================================================
+
+async def track_activity(
+    update: object,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+
+    if update.effective_user:
+
+        update_activity(
+
+            update.effective_user.id
 
         )
 
@@ -259,9 +309,10 @@ def main():
 
 
 
-    # --------------------------
-    # Welcome
-    # --------------------------
+    # ======================================================
+    # MEMBER SYSTEM
+    # ======================================================
+
 
     application.add_handler(
 
@@ -274,7 +325,6 @@ def main():
         )
 
     )
-
 
 
     application.add_handler(
@@ -291,6 +341,176 @@ def main():
 
 
 
+    # ======================================================
+    # COMMANDS
+    # ======================================================
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "rules",
+            rules
+        )
+
+    )
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "help",
+            help_command
+        )
+
+    )
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "activities",
+            activities
+        )
+
+    )
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "setbirthday",
+            set_birthday
+        )
+
+    )
+
+
+
+    # ======================================================
+    # RAFFLES
+    # ======================================================
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "raffle",
+            raffle_status
+        )
+
+    )
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "enter",
+            enter_raffle
+        )
+
+    )
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "startraffle",
+            start_raffle
+        )
+
+    )
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "drawraffle",
+            draw_raffle
+        )
+
+    )
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "cancelraffle",
+            cancel_raffle
+        )
+
+    )
+
+
+
+    # ======================================================
+    # GAMES
+    # ======================================================
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "trivia",
+            trivia
+        )
+
+    )
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "truth",
+            truth
+        )
+
+    )
+
+
+    application.add_handler(
+
+        CommandHandler(
+            "dare",
+            dare
+        )
+
+    )
+
+
+
+    # ======================================================
+    # TEXT HANDLERS
+    # ORDER MATTERS
+    # ======================================================
+
+
+    application.add_handler(
+
+        MessageHandler(
+
+            filters.TEXT & ~filters.COMMAND,
+
+            trivia_answer
+
+        )
+
+    )
+
+
+    application.add_handler(
+
+        MessageHandler(
+
+            filters.TEXT & ~filters.COMMAND,
+
+            track_activity
+
+        )
+
+    )
+
+
     application.add_handler(
 
         MessageHandler(
@@ -305,150 +525,16 @@ def main():
 
 
 
-    # --------------------------
-    # Rules / Help / Activities
-    # --------------------------
-
-    application.add_handler(
-
-        CommandHandler(
-
-            "rules",
-
-            rules
-
-        )
-
-    )
+    # ======================================================
+    # ADMIN
+    # ======================================================
 
 
     application.add_handler(
 
         CommandHandler(
-
-            "help",
-
-            help_command
-
-        )
-
-    )
-
-
-    application.add_handler(
-
-        CommandHandler(
-
-            "activities",
-
-            activities
-
-        )
-
-    )
-
-
-
-    # --------------------------
-    # Birthdays
-    # --------------------------
-
-    application.add_handler(
-
-        CommandHandler(
-
-            "setbirthday",
-
-            set_birthday
-
-        )
-
-    )
-
-
-
-    # --------------------------
-    # Raffles
-    # --------------------------
-
-    application.add_handler(
-
-        CommandHandler(
-
-            "raffle",
-
-            raffle_status
-
-        )
-
-    )
-
-
-    application.add_handler(
-
-        CommandHandler(
-
-            "enter",
-
-            enter_raffle
-
-        )
-
-    )
-
-
-    application.add_handler(
-
-        CommandHandler(
-
-            "startraffle",
-
-            start_raffle
-
-        )
-
-    )
-
-
-    application.add_handler(
-
-        CommandHandler(
-
-            "drawraffle",
-
-            draw_raffle
-
-        )
-
-    )
-
-
-    application.add_handler(
-
-        CommandHandler(
-
-            "cancelraffle",
-
-            cancel_raffle
-
-        )
-
-    )
-
-
-
-    # --------------------------
-    # Admin
-    # --------------------------
-
-    application.add_handler(
-
-        CommandHandler(
-
             "admin",
-
             admin_commands
-
         )
 
     )
