@@ -1,10 +1,8 @@
 # ==========================================================
 # Melanated AZ Bot
 # media.py
-# Media Restriction System
-# Photos/Videos Require Spoiler
+# Photo / Video Spoiler Protection
 # GIFs Allowed
-# Deletes warning after 30 seconds
 # ==========================================================
 
 import asyncio
@@ -16,16 +14,16 @@ from telegram.ext import ContextTypes
 WARNING_MESSAGE = """
 🚫 Media Removed
 
-Photos and videos must be posted using Telegram Spoiler.
+Photos and videos must use Telegram Spoiler.
 
-How to send:
+How to send with Spoiler:
 
 1️⃣ Select your photo/video
-2️⃣ Tap the ⋮ menu
-3️⃣ Select "Hide with Spoiler"
+2️⃣ Tap ⋮ menu
+3️⃣ Choose "Hide with Spoiler"
 4️⃣ Send again
 
-GIFs are allowed ✅
+✅ GIFs are allowed
 
 Thank you for helping keep Melanated AZ organized.
 """
@@ -64,19 +62,9 @@ async def check_media(
 
 
 
-    # Ignore admins
-    # (optional - remove if you want admins restricted too)
-
-    if update.effective_user.id in [5879167814]:
-
-        return
-
-
-
     # Allow spoiler media
 
     if message.has_media_spoiler:
-
         return
 
 
@@ -101,7 +89,7 @@ async def check_media(
 
 
 
-    # Video files uploaded as documents
+    # Videos sent as files
 
     elif message.document:
 
@@ -113,4 +101,54 @@ async def check_media(
 
 
 
-    # GIF
+    # GIFs/animations allowed
+
+
+
+    if not blocked:
+
+        return
+
+
+
+    try:
+
+
+        chat_id = message.chat.id
+
+
+
+        # Delete bad media first
+
+        await message.delete()
+
+
+
+        # Send warning
+
+        warning = await context.bot.send_message(
+
+            chat_id=chat_id,
+
+            text=WARNING_MESSAGE
+
+        )
+
+
+        # Remove warning after 30 seconds
+
+        asyncio.create_task(
+
+            remove_warning(
+                warning
+            )
+
+        )
+
+
+    except Exception as e:
+
+
+        print(
+            f"Media restriction error: {e}"
+        )
