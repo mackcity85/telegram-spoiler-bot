@@ -18,6 +18,10 @@ from telegram.ext import (
 # CONFIG
 # ==========================================================
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 TOKEN = os.getenv("BOT_TOKEN")
 
 logging.basicConfig(
