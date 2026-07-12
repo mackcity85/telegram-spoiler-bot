@@ -15,6 +15,11 @@ from database import (
 from birthday_scheduler import birthday_check
 from activity_scheduler import activity_check
 
+from admin import (
+    announce,
+    botstatus
+)
+
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -70,19 +75,27 @@ def run_flask():
 # COMMANDS
 # ==========================================================
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     await update.message.reply_text(
         "🔥 Melanated AZ Bot is online.\n\n"
+        "🛡 Media spoiler protection active\n"
+        "🎂 Birthday system active\n"
+        "👋 Activity tracking active\n\n"
         "Commands:\n"
         "/rules\n"
-        "/birthday MM/DD\n\n"
-        "Media spoiler protection active."
+        "/birthday MM/DD"
     )
 
 
 
-async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def rules(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     await update.message.reply_text(
         "📜 Melanated AZ Rules\n\n"
@@ -99,7 +112,10 @@ async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # BIRTHDAY COMMAND
 # ==========================================================
 
-async def birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def birthday(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
     if not context.args:
 
@@ -135,7 +151,7 @@ async def birthday(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ==========================================================
-# ACTIVITY TRACKING
+# MEMBER ACTIVITY TRACKING
 # ==========================================================
 
 async def track_activity(
@@ -207,7 +223,7 @@ async def media_check(
 
 
 # ==========================================================
-# STARTUP TASKS
+# BACKGROUND TASKS
 # ==========================================================
 
 async def startup(application):
@@ -254,6 +270,10 @@ def main():
     )
 
 
+    # --------------------------
+    # User Commands
+    # --------------------------
+
     application.add_handler(
         CommandHandler(
             "start",
@@ -278,6 +298,30 @@ def main():
     )
 
 
+    # --------------------------
+    # Admin Commands
+    # --------------------------
+
+    application.add_handler(
+        CommandHandler(
+            "announce",
+            announce
+        )
+    )
+
+
+    application.add_handler(
+        CommandHandler(
+            "botstatus",
+            botstatus
+        )
+    )
+
+
+    # --------------------------
+    # Media Protection
+    # --------------------------
+
     application.add_handler(
         MessageHandler(
             filters.PHOTO |
@@ -288,6 +332,10 @@ def main():
         )
     )
 
+
+    # --------------------------
+    # Activity Tracking
+    # --------------------------
 
     application.add_handler(
         MessageHandler(
