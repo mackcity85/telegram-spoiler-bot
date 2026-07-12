@@ -1,13 +1,13 @@
 # ==========================================================
 # Melanated AZ Bot
-# bot.py
-# Main Controller
+# Main Launcher
 # ==========================================================
 
 import os
 import logging
-import threading
-import asyncio
+from threading import Thread
+
+from dotenv import load_dotenv
 
 from flask import Flask
 
@@ -15,53 +15,58 @@ from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
-    ContextTypes,
+    ChatMemberHandler,
     filters
 )
 
-from config import BOT_TOKEN
 
-from database import initialize_database
+# ==========================================================
+# ENV
+# ==========================================================
 
-from welcome import (
-    welcome_new_member,
-    profile_check,
-    intro
+load_dotenv()
+
+TOKEN = os.getenv(
+    "BOT_TOKEN"
+)
+
+
+if not TOKEN:
+
+    raise ValueError(
+        "BOT_TOKEN missing"
+    )
+
+
+
+# ==========================================================
+# IMPORTS
+# ==========================================================
+
+from admin import admin_commands
+
+from media import check_media
+
+from welcome import welcome
+
+from birthdays import (
+    init_birthdays,
+    birthday_command,
+    birthday_check
 )
 
 from rules import rules
 
-from admin import admin_commands
-
 from raffle import (
-    start_raffle,
-    enter_raffle,
-    draw_raffle,
-    raffle_status
+    startraffle,
+    drawraffle,
+    cancelraffle
 )
 
-from birthdays import (
-    birthday,
-    birthday_check
-)
+from trivia import trivia
 
-from trivia import (
-    trivia,
-    trivia_answer
-)
+from truth_dare import truth_or_dare
 
-from truth_dare import (
-    truth,
-    dare
-)
-
-from media import media_protection
-
-from moderation import delete_message
-
-from activity_scheduler import start_activity_scheduler
-from birthday_scheduler import start_birthday_scheduler
-from pin_cleanup import pin_cleanup_task
 
 
 # ==========================================================
@@ -69,15 +74,16 @@ from pin_cleanup import pin_cleanup_task
 # ==========================================================
 
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
+
 
 logger = logging.getLogger(__name__)
 
 
+
 # ==========================================================
-# FLASK HEALTH CHECK
+# KEEP ALIVE
 # ==========================================================
 
 app = Flask(__name__)
@@ -86,76 +92,15 @@ app = Flask(__name__)
 @app.route("/")
 def home():
 
-    return "Melanated AZ Bot Online"
+    return "Melanated AZ Bot Running"
 
 
-def run_flask():
 
-    port = int(
-        os.environ.get(
-            "PORT",
-            10000
-        )
-    )
+def run_web():
 
     app.run(
         host="0.0.0.0",
-        port=port
-    )
-
-
-# ==========================================================
-# STARTUP
-# ==========================================================
-
-async def startup(
-    application: Application
-):
-
-    await application.bot.delete_webhook(
-        drop_pending_updates=True
-    )
-
-
-    logger.info(
-        "Melanated AZ Bot Started"
-    )
-
-
-    asyncio.create_task(
-        start_activity_scheduler(
-            application
-        )
-    )
-
-
-    asyncio.create_task(
-        start_birthday_scheduler(
-            application
-        )
-    )
-
-
-    asyncio.create_task(
-        pin_cleanup_task(
-            application
-        )
-    )
-
-
-
-# ==========================================================
-# ERROR HANDLER
-# ==========================================================
-
-async def error_handler(
-    update: object,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    logger.error(
-        "Bot Error",
-        exc_info=context.error
+        port=10000
     )
 
 
@@ -167,186 +112,28 @@ async def error_handler(
 def main():
 
 
-    initialize_database()
-
-
-    flask_thread = threading.Thread(
-        target=run_flask,
+    Thread(
+        target=run_web,
         daemon=True
-    )
-
-    flask_thread.start()
+    ).start()
 
 
 
-    application = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .post_init(startup)
+    init_birthdays()
+
+
+
+    bot = (
+        Application
+        .builder()
+        .token(TOKEN)
         .build()
     )
 
 
+    # Commands
 
-    # ======================================================
-    # WELCOME
-    # ======================================================
-
-    application.add_handler(
-        MessageHandler(
-            filters.StatusUpdate.NEW_CHAT_MEMBERS,
-            welcome_new_member
-        )
-    )
-
-
-    application.add_handler(
-        CommandHandler(
-            "intro",
-            intro
-        )
-    )
-
-
-    application.add_handler(
-        CommandHandler(
-            "rules",
-            rules
-        )
-    )
-
-
-
-    # ======================================================
-    # MEDIA PROTECTION
-    # ======================================================
-
-    application.add_handler(
-        MessageHandler(
-            filters.PHOTO |
-            filters.VIDEO |
-            filters.Document.VIDEO |
-            filters.ANIMATION,
-            media_protection
-        ),
-        group=1
-    )
-
-
-
-    # ======================================================
-    # PROFILE TRACKING
-    # ======================================================
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            profile_check
-        )
-    )
-
-
-
-    # ======================================================
-    # RAFFLES
-    # ======================================================
-
-    application.add_handler(
-        CommandHandler(
-            "startraffle",
-            start_raffle
-        )
-    )
-
-
-    application.add_handler(
-        CommandHandler(
-            "enter",
-            enter_raffle
-        )
-    )
-
-
-    application.add_handler(
-        CommandHandler(
-            "raffle",
-            raffle_status
-        )
-    )
-
-
-    application.add_handler(
-        CommandHandler(
-            "drawraffle",
-            draw_raffle
-        )
-    )
-
-
-
-    # ======================================================
-    # BIRTHDAYS
-    # ======================================================
-
-    application.add_handler(
-        CommandHandler(
-            "birthday",
-            birthday
-        )
-    )
-
-
-    application.add_handler(
-        CommandHandler(
-            "birthdaycheck",
-            birthday_check
-        )
-    )
-
-
-
-    # ======================================================
-    # GAMES
-    # ======================================================
-
-    application.add_handler(
-        CommandHandler(
-            "trivia",
-            trivia
-        )
-    )
-
-
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            trivia_answer
-        )
-    )
-
-
-    application.add_handler(
-        CommandHandler(
-            "truth",
-            truth
-        )
-    )
-
-
-    application.add_handler(
-        CommandHandler(
-            "dare",
-            dare
-        )
-    )
-
-
-
-    # ======================================================
-    # ADMIN
-    # ======================================================
-
-    application.add_handler(
+    bot.add_handler(
         CommandHandler(
             "admin",
             admin_commands
@@ -354,35 +141,100 @@ def main():
     )
 
 
-    application.add_handler(
+    bot.add_handler(
         CommandHandler(
-            "delete",
-            delete_message
+            "birthday",
+            birthday_command
         )
     )
 
 
-
-    application.add_error_handler(
-        error_handler
+    bot.add_handler(
+        CommandHandler(
+            "birthdaycheck",
+            birthday_check
+        )
     )
 
 
+    bot.add_handler(
+        CommandHandler(
+            "rules",
+            rules
+        )
+    )
 
-    logger.info(
+
+    bot.add_handler(
+        CommandHandler(
+            "trivia",
+            trivia
+        )
+    )
+
+
+    bot.add_handler(
+        CommandHandler(
+            "truth",
+            truth_or_dare
+        )
+    )
+
+
+    bot.add_handler(
+        CommandHandler(
+            "startraffle",
+            startraffle
+        )
+    )
+
+
+    bot.add_handler(
+        CommandHandler(
+            "drawraffle",
+            drawraffle
+        )
+    )
+
+
+    bot.add_handler(
+        CommandHandler(
+            "cancelraffle",
+            cancelraffle
+        )
+    )
+
+
+    # Media protection
+
+    bot.add_handler(
+        MessageHandler(
+            filters.ALL,
+            check_media
+        )
+    )
+
+
+    # Welcome
+
+    bot.add_handler(
+        ChatMemberHandler(
+            welcome,
+            ChatMemberHandler.CHAT_MEMBER
+        )
+    )
+
+
+    print(
         "Melanated AZ Bot is running"
     )
 
 
-    application.run_polling(
+    bot.run_polling(
         drop_pending_updates=True
     )
 
 
-
-# ==========================================================
-# RUN
-# ==========================================================
 
 if __name__ == "__main__":
 
