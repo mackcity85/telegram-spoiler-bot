@@ -1,112 +1,70 @@
 # ==========================================================
-# Melanated AZ Bot - Admin Controls
+# Melanated AZ Bot
+# admin.py
 # ==========================================================
 
 from telegram import Update
-from telegram.ext import (
-    CommandHandler,
-    ContextTypes
-)
+from telegram.ext import ContextTypes
 
 from config import ADMIN_IDS
 
 
 # ==========================================================
-# ADMIN CHECK
+# CHECK IF USER IS ADMIN
 # ==========================================================
 
-def is_admin(user_id):
+async def is_admin(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
-    return user_id in ADMIN_IDS
+    user = update.effective_user
 
+    if not user:
+        return False
+
+    return user.id in ADMIN_IDS
 
 
 # ==========================================================
 # ADMIN HELP
 # ==========================================================
 
-async def admin_help(
+async def admin_commands(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not is_admin(update.effective_user.id):
-
-        await update.message.reply_text(
-            "❌ Admin only command."
-        )
+    if not await is_admin(update, context):
         return
-
 
     await update.message.reply_text(
-        """
+"""
 👑 Admin Commands
 
-/promote
-/demote
-/announce
-/kick
-/ban
+🎟 Raffles
+/startraffle <prize>
+/drawraffle
+/cancelraffle
 
-More controls coming soon.
+📌 Group
+/pin
+/unpin
+
+📜 Rules
+/rules
+
+🎂 Birthdays
+/setbirthday MM-DD-YYYY
+
+🎉 Activities
+/activities
+
+👥 Members
+/inactive
+/active
+
+🛡 Moderation
+/delete
 """
-    )
-
-
-
-# ==========================================================
-# ANNOUNCE
-# ==========================================================
-
-async def announce(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    if not is_admin(update.effective_user.id):
-
-        return
-
-
-    if not context.args:
-
-        await update.message.reply_text(
-            "Usage:\n/announce message"
-        )
-
-        return
-
-
-    message = " ".join(
-        context.args
-    )
-
-
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=message
-    )
-
-
-
-# ==========================================================
-# REGISTER ADMIN COMMANDS
-# ==========================================================
-
-def admin_commands(application):
-
-
-    application.add_handler(
-        CommandHandler(
-            "admin",
-            admin_help
-        )
-    )
-
-
-    application.add_handler(
-        CommandHandler(
-            "announce",
-            announce
-        )
     )
