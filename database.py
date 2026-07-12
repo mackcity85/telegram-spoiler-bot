@@ -5,10 +5,10 @@
 # ==========================================================
 
 import sqlite3
+
 from datetime import datetime, timedelta
 
-
-DB_NAME = "melanatedaz.db"
+from config import DB_NAME
 
 
 
@@ -35,6 +35,10 @@ def initialize_database():
     cursor = conn.cursor()
 
 
+    # --------------------------
+    # Members
+    # --------------------------
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS members
     (
@@ -49,13 +53,35 @@ def initialize_database():
     """)
 
 
+
+    # --------------------------
+    # Raffle Entries
+    # --------------------------
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS raffle_entries
     (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
+        username TEXT,
         raffle TEXT,
         entered_date TEXT
+    )
+    """)
+
+
+
+    # --------------------------
+    # Activities
+    # --------------------------
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS activities
+    (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        description TEXT,
+        event_date TEXT
     )
     """)
 
@@ -66,7 +92,7 @@ def initialize_database():
 
 
 # ==========================================================
-# UPDATE MEMBER ACTIVITY
+# UPDATE MEMBER
 # ==========================================================
 
 def update_member(
@@ -77,6 +103,7 @@ def update_member(
 ):
 
     conn = get_db()
+
     cursor = conn.cursor()
 
 
@@ -108,7 +135,6 @@ def update_member(
     """,
 
     (
-
         user_id,
         username,
         first_name,
@@ -119,30 +145,22 @@ def update_member(
         username,
         first_name,
         now
-
     ))
 
 
     conn.commit()
+
     conn.close()
 
 
 
 # ==========================================================
-# GET INACTIVE MEMBERS
+# UPDATE ACTIVITY
 # ==========================================================
 
-def get_inactive_members(
-    days=30
+def update_activity(
+    user_id
 ):
-
-    cutoff = (
-        datetime.now()
-        -
-        timedelta(days=days)
-    ).isoformat()
-
-
 
     conn = get_db()
 
@@ -151,34 +169,23 @@ def get_inactive_members(
 
     cursor.execute("""
 
-    SELECT user_id,
-           first_name
+    UPDATE members
 
-    FROM members
+    SET last_active=?
 
-    WHERE last_active < ?
+    WHERE user_id=?
 
     """,
 
-    (cutoff,))
+    (
+        datetime.now().isoformat(),
+        user_id
+    ))
 
 
-    rows = cursor.fetchall()
+    conn.commit()
 
     conn.close()
-
-
-
-    return [
-
-        {
-            "user_id": r[0],
-            "first_name": r[1]
-        }
-
-        for r in rows
-
-    ]
 
 
 
@@ -197,7 +204,6 @@ def get_active_members(
     ).isoformat()
 
 
-
     conn = get_db()
 
     cursor = conn.cursor()
@@ -214,7 +220,9 @@ def get_active_members(
 
     """,
 
-    (cutoff,))
+    (
+        cutoff,
+    ))
 
 
     rows = cursor.fetchall()
@@ -222,15 +230,68 @@ def get_active_members(
     conn.close()
 
 
+    return [
+
+        {
+            "user_id": row[0],
+            "first_name": row[1]
+        }
+
+        for row in rows
+
+    ]
+
+
+
+# ==========================================================
+# GET INACTIVE MEMBERS
+# ==========================================================
+
+def get_inactive_members(
+    days=30
+):
+
+    cutoff = (
+        datetime.now()
+        -
+        timedelta(days=days)
+    ).isoformat()
+
+
+    conn = get_db()
+
+    cursor = conn.cursor()
+
+
+    cursor.execute("""
+
+    SELECT user_id,
+           first_name
+
+    FROM members
+
+    WHERE last_active < ?
+
+    """,
+
+    (
+        cutoff,
+    ))
+
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
 
     return [
 
         {
-            "user_id": r[0],
-            "first_name": r[1]
+            "user_id": row[0],
+            "first_name": row[1]
         }
 
-        for r in rows
+        for row in rows
 
     ]
 
@@ -267,6 +328,7 @@ def save_birthday(
 
 
     conn.commit()
+
     conn.close()
 
 
@@ -312,10 +374,53 @@ def get_todays_birthdays():
     return [
 
         {
-            "first_name": r[0],
-            "birthday": r[1]
+            "first_name": row[0],
+            "birthday": row[1]
         }
 
-        for r in rows
+        for row in rows
 
     ]
+
+
+
+# ==========================================================
+# ADD RAFFLE ENTRY
+# ==========================================================
+
+def add_raffle_entry(
+    user_id,
+    username,
+    raffle
+):
+
+    conn = get_db()
+
+    cursor = conn.cursor()
+
+
+    cursor.execute("""
+
+    INSERT INTO raffle_entries
+    (
+        user_id,
+        username,
+        raffle,
+        entered_date
+    )
+
+    VALUES (?,?,?,?)
+
+    """,
+
+    (
+        user_id,
+        username,
+        raffle,
+        datetime.now().isoformat()
+    ))
+
+
+    conn.commit()
+
+    conn.close()
