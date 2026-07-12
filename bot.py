@@ -56,11 +56,13 @@ from birthdays import (
 
 from rules import rules
 
+
 from raffle import (
-    startraffle,
-    drawraffle,
-    cancelraffle
+    start_raffle,
+    draw_raffle,
+    cancel_raffle
 )
+
 
 from trivia import trivia
 
@@ -76,6 +78,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +144,6 @@ async def startup_message(application):
 
 def main():
 
-
     Thread(
         target=run_web,
         daemon=True
@@ -153,7 +155,7 @@ def main():
 
 
 
-    bot = (
+    application = (
         Application
         .builder()
         .token(TOKEN)
@@ -168,7 +170,7 @@ def main():
     # =========================
 
 
-    bot.add_handler(
+    application.add_handler(
         CommandHandler(
             "admin",
             admin_commands
@@ -176,7 +178,7 @@ def main():
     )
 
 
-    bot.add_handler(
+    application.add_handler(
         CommandHandler(
             "birthday",
             birthday_command
@@ -184,7 +186,7 @@ def main():
     )
 
 
-    bot.add_handler(
+    application.add_handler(
         CommandHandler(
             "birthdaycheck",
             birthday_check
@@ -192,7 +194,7 @@ def main():
     )
 
 
-    bot.add_handler(
+    application.add_handler(
         CommandHandler(
             "rules",
             rules
@@ -200,7 +202,7 @@ def main():
     )
 
 
-    bot.add_handler(
+    application.add_handler(
         CommandHandler(
             "trivia",
             trivia
@@ -208,7 +210,7 @@ def main():
     )
 
 
-    bot.add_handler(
+    application.add_handler(
         CommandHandler(
             "truth",
             truth_or_dare
@@ -216,26 +218,26 @@ def main():
     )
 
 
-    bot.add_handler(
+    application.add_handler(
         CommandHandler(
             "startraffle",
-            startraffle
+            start_raffle
         )
     )
 
 
-    bot.add_handler(
+    application.add_handler(
         CommandHandler(
             "drawraffle",
-            drawraffle
+            draw_raffle
         )
     )
 
 
-    bot.add_handler(
+    application.add_handler(
         CommandHandler(
             "cancelraffle",
-            cancelraffle
+            cancel_raffle
         )
     )
 
@@ -243,17 +245,16 @@ def main():
 
     # =========================
     # MEDIA PROTECTION
-    # ONLY PHOTOS/VIDEOS
+    # PHOTOS + VIDEOS ONLY
     # =========================
 
-
-    bot.add_handler(
-    MessageHandler(
-        filters.PHOTO | filters.VIDEO,
-        check_media
-    ),
-    group=0
-)
+    application.add_handler(
+        MessageHandler(
+            filters.PHOTO | filters.VIDEO,
+            check_media
+        ),
+        group=0
+    )
 
 
 
@@ -261,7 +262,7 @@ def main():
     # WELCOME
     # =========================
 
-    bot.add_handler(
+    application.add_handler(
         ChatMemberHandler(
             welcome,
             ChatMemberHandler.CHAT_MEMBER
@@ -276,12 +277,15 @@ def main():
 
 
 
-    bot.run_polling(
-        allowed_updates=None,
-        drop_pending_updates=True
+    application.run_polling(
+        allowed_updates=None
     )
 
 
+
+# ==========================================================
+# START
+# ==========================================================
 
 if __name__ == "__main__":
 
