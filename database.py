@@ -46,7 +46,7 @@ def initialize_database():
 
 
 # ==========================================================
-# UPDATE MEMBER ACTIVITY
+# UPDATE MEMBER
 # ==========================================================
 
 def update_member(
@@ -75,6 +75,7 @@ def update_member(
         joined_date,
         last_active
     )
+
     VALUES (?, ?, ?, ?, ?, ?)
 
     ON CONFLICT(user_id, chat_id)
@@ -140,7 +141,7 @@ def save_birthday(
 
 
 # ==========================================================
-# GET TODAY'S BIRTHDAYS
+# GET TODAY BIRTHDAYS
 # ==========================================================
 
 def get_birthdays_today(today):
@@ -161,15 +162,77 @@ def get_birthdays_today(today):
     WHERE birthday=?
 
     """,
-    (
-        today,
-    ))
+    (today,))
 
 
-    birthdays = cursor.fetchall()
-
+    results = cursor.fetchall()
 
     conn.close()
 
+    return results
 
-    return birthdays
+
+
+# ==========================================================
+# GET INACTIVE MEMBERS
+# ==========================================================
+
+def get_inactive_members(cutoff):
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+
+    cursor.execute("""
+    SELECT
+        user_id,
+        chat_id,
+        first_name,
+        username
+
+    FROM members
+
+    WHERE last_active < ?
+
+    """,
+    (cutoff,))
+
+
+    results = cursor.fetchall()
+
+    conn.close()
+
+    return results
+
+
+
+# ==========================================================
+# GET ACTIVE MEMBERS
+# ==========================================================
+
+def get_active_members(cutoff):
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+
+    cursor.execute("""
+    SELECT
+        user_id,
+        chat_id,
+        first_name,
+        username
+
+    FROM members
+
+    WHERE last_active >= ?
+
+    """,
+    (cutoff,))
+
+
+    results = cursor.fetchall()
+
+    conn.close()
+
+    return results
