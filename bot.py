@@ -248,18 +248,12 @@ def main():
 
 
     bot.add_handler(
-        MessageHandler(
-            (
-                filters.PHOTO
-                |
-                filters.VIDEO
-                |
-                filters.Document.VIDEO
-            ),
-            check_media
-        ),
-        group=1
-    )
+    MessageHandler(
+        filters.PHOTO | filters.VIDEO,
+        check_media
+    ),
+    group=0
+)
 
 
 
