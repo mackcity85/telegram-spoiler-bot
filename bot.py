@@ -8,7 +8,6 @@ import logging
 from threading import Thread
 
 from dotenv import load_dotenv
-
 from flask import Flask
 
 from telegram.ext import (
@@ -26,17 +25,17 @@ from telegram.ext import (
 
 load_dotenv()
 
-TOKEN = os.getenv(
-    "BOT_TOKEN"
+TOKEN = os.getenv("BOT_TOKEN")
+
+STARTUP_CHAT_ID = os.getenv(
+    "STARTUP_CHAT_ID"
 )
 
 
 if not TOKEN:
-
     raise ValueError(
         "BOT_TOKEN missing"
     )
-
 
 
 # ==========================================================
@@ -74,9 +73,9 @@ from truth_dare import truth_or_dare
 # ==========================================================
 
 logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -100,8 +99,39 @@ def run_web():
 
     app.run(
         host="0.0.0.0",
-        port=10000
+        port=int(
+            os.getenv(
+                "PORT",
+                10000
+            )
+        )
     )
+
+
+
+# ==========================================================
+# STARTUP MESSAGE
+# ==========================================================
+
+async def startup_message(application):
+
+    if STARTUP_CHAT_ID:
+
+        try:
+
+            await application.bot.send_message(
+                chat_id=int(STARTUP_CHAT_ID),
+                text=
+                "🟢 Melanated AZ Bot is online\n\n"
+                "🛡 Media Protection Active\n"
+                "🎂 Birthday System Active"
+            )
+
+        except Exception as e:
+
+            logger.warning(
+                f"Startup message failed: {e}"
+            )
 
 
 
@@ -127,11 +157,16 @@ def main():
         Application
         .builder()
         .token(TOKEN)
+        .post_init(startup_message)
         .build()
     )
 
 
-    # Commands
+
+    # =========================
+    # COMMANDS
+    # =========================
+
 
     bot.add_handler(
         CommandHandler(
@@ -205,17 +240,32 @@ def main():
     )
 
 
-    # Media protection
+
+    # =========================
+    # MEDIA PROTECTION
+    # ONLY PHOTOS/VIDEOS
+    # =========================
+
 
     bot.add_handler(
         MessageHandler(
-            filters.ALL,
+            (
+                filters.PHOTO
+                |
+                filters.VIDEO
+                |
+                filters.Document.VIDEO
+            ),
             check_media
-        )
+        ),
+        group=1
     )
 
 
-    # Welcome
+
+    # =========================
+    # WELCOME
+    # =========================
 
     bot.add_handler(
         ChatMemberHandler(
@@ -225,12 +275,15 @@ def main():
     )
 
 
+
     print(
-        "Melanated AZ Bot is running"
+        "🟢 Melanated AZ Bot Started"
     )
 
 
+
     bot.run_polling(
+        allowed_updates=None,
         drop_pending_updates=True
     )
 
