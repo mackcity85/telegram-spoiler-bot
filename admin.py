@@ -1,6 +1,7 @@
 # ==========================================================
 # Melanated AZ Bot
 # admin.py
+# Admin Protection & Commands
 # ==========================================================
 
 from telegram import Update
@@ -9,8 +10,9 @@ from telegram.ext import ContextTypes
 from config import ADMIN_IDS
 
 
+
 # ==========================================================
-# CHECK IF USER IS ADMIN
+# CHECK ADMIN
 # ==========================================================
 
 async def is_admin(
@@ -20,14 +22,17 @@ async def is_admin(
 
     user = update.effective_user
 
+
     if not user:
         return False
+
 
     return user.id in ADMIN_IDS
 
 
+
 # ==========================================================
-# ADMIN HELP
+# ADMIN COMMAND MENU
 # ==========================================================
 
 async def admin_commands(
@@ -35,36 +40,69 @@ async def admin_commands(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not await is_admin(update, context):
+
+    if not await is_admin(
+        update,
+        context
+    ):
+
+        await update.message.reply_text(
+            "❌ Admins only."
+        )
+
         return
 
+
+
     await update.message.reply_text(
+
 """
-👑 Admin Commands
+👑 Melanated AZ Admin Commands
 
 🎟 Raffles
-/startraffle <prize>
+
+/startraffle Prize Name
+Start a raffle
+
 /drawraffle
+Pick winner
+
 /cancelraffle
+Cancel raffle
 
-📌 Group
-/pin
-/unpin
-
-📜 Rules
-/rules
-
-🎂 Birthdays
-/setbirthday MM-DD-YYYY
-
-🎉 Activities
-/activities
 
 👥 Members
-/inactive
+
 /active
+Show active members
+
+/inactive
+Show inactive members
+
+
+🎂 Birthdays
+
+/birthdaycheck
+Check today's birthdays
+
+
+📌 Group Tools
+
+/pin
+Pin messages
+
+/unpin
+Remove pins
+
 
 🛡 Moderation
+
 /delete
+Delete message
+
+
+━━━━━━━━━━━━━━━
+
+Admin access confirmed 👑
 """
     )
