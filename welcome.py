@@ -1,16 +1,20 @@
 # ==========================================================
 # Melanated AZ Bot
-# Welcome System
+# welcome.py
+# Member Welcome System
 # ==========================================================
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from database import update_member
+from database import (
+    update_member
+)
+
 
 
 # ==========================================================
-# WELCOME NEW MEMBERS
+# NEW MEMBER WELCOME
 # ==========================================================
 
 async def welcome_new_member(
@@ -20,6 +24,7 @@ async def welcome_new_member(
 
     if not update.message:
         return
+
 
 
     for member in update.message.new_chat_members:
@@ -33,153 +38,61 @@ async def welcome_new_member(
 
 
         update_member(
+
             member.id,
             update.effective_chat.id,
             member.username,
             member.first_name
+
         )
 
 
 
-        welcome_message = f"""
-👑 Welcome {member.first_name} to Melanated AZ 👑
+        await update.message.reply_text(
 
-🔥 We're glad you joined our community.
+f"""
+🔥 Welcome {member.first_name} to Melanated AZ! 👑
 
-This is a space for adults to network, connect, socialize, and meet like-minded people.
+We are glad to have you here.
 
-Before participating, please complete your introduction.
+Before joining conversations, please:
 
-━━━━━━━━━━━━━━━
+📸 Add a profile picture
 
-📌 REQUIRED INTRODUCTION
+📝 Introduce yourself:
 
-Please share:
+• Name
+• Age
+• Location
+• Status
+• What you're here for
+• DMs Open or Closed
 
-✅ Name
-✅ Age
-✅ Location
-✅ Status
-   (Single / Partnered / Poly / Other)
-✅ What you're here for
-✅ DMs Open or Closed
 
 Example:
 
-King | 40 | Arizona | Partnered |
-Networking, friendships, connections |
-DMs Open
+King | 40 | Arizona | Partnered | Networking & connections | DMs Open
 
-━━━━━━━━━━━━━━━
 
-📜 IMPORTANT
-
-Please review:
-
-/rules
-
-Community standards:
-
-✅ Respect everyone
-✅ Respect boundaries
-✅ No harassment
-✅ No unwanted DMs
-✅ No drama
-✅ Adults 18+ only
-✅ Protect privacy
-
-━━━━━━━━━━━━━━━
-
-🔒 MEDIA SPOILERS
-
-Photos and videos must use Telegram spoiler protection.
-
-How to hide media:
-
-📸 Photos/Videos:
-
-1️⃣ Attach media
-2️⃣ Tap the ⋮ menu
-3️⃣ Select:
-
-👁 Hide with Spoiler
-
-4️⃣ Send
-
-Text spoilers:
-
-1️⃣ Highlight text
-2️⃣ Select "Spoiler"
-3️⃣ Send
-
-━━━━━━━━━━━━━━━
-
-🎉 COMMUNITY FEATURES
-
-Available commands:
+Please review our community guidelines:
 
 📜 /rules
-View group guidelines
 
-🎂 /birthday
-Save your birthday
 
-🎲 /activities
-View group activities
-
-🎟 /raffle
-Join upcoming giveaways
+Useful commands:
 
 ❓ /help
-See all commands
+🎉 /activities
+🎂 /setbirthday MM-DD-YYYY
+🎟 /raffle
 
-━━━━━━━━━━━━━━━
 
-👑 Have fun, introduce yourself, and enjoy the room!
+Respect • Consent • Communication • Good Energy
 
-Consent • Respect • Communication • Accountability
+Welcome to the community! 👑
 """
 
-
-        await update.message.reply_text(
-            welcome_message
         )
-
-
-
-# ==========================================================
-# INTRO COMMAND
-# ==========================================================
-
-async def intro(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    if not update.message:
-        return
-
-
-    if not context.args:
-
-        await update.message.reply_text(
-            "Usage:\n\n"
-            "/intro Your introduction"
-        )
-
-        return
-
-
-
-    intro_text = " ".join(
-        context.args
-    )
-
-
-    await update.message.reply_text(
-        "✅ Introduction received!\n\n"
-        f"{intro_text}"
-    )
 
 
 
@@ -199,23 +112,79 @@ async def profile_check(
     user = update.effective_user
 
 
+    if not user:
+        return
+
+
+
     try:
 
         photos = await context.bot.get_user_profile_photos(
+
             user.id,
             limit=1
+
         )
 
 
         if photos.total_count == 0:
 
+
             await update.message.reply_text(
-                f"👋 {user.first_name},\n\n"
-                "Please add a profile picture "
+
+                f"👋 {user.first_name}, "
+                "please add a profile picture "
                 "to complete your community profile."
+
             )
 
 
     except Exception:
 
         pass
+
+
+
+# ==========================================================
+# INTRO COMMAND
+# ==========================================================
+
+async def intro(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+
+    if not context.args:
+
+
+        await update.message.reply_text(
+
+            "Usage:\n"
+            "/intro Your introduction"
+
+        )
+
+        return
+
+
+
+    introduction = " ".join(
+
+        context.args
+
+    )
+
+
+
+    await update.message.reply_text(
+
+f"""
+✅ Introduction received!
+
+{introduction}
+
+Welcome to Melanated AZ 👑
+"""
+
+    )
