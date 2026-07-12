@@ -1,20 +1,15 @@
 # ==========================================================
+# Melanated AZ Bot
 # admin.py
-# Melanated AZ Bot v3
-# Admin Protection + Moderation Commands
+# Admin Protection System
 # ==========================================================
 
-import logging
-
-from telegram import Update, ChatPermissions
+from telegram import Update
 from telegram.ext import ContextTypes
 
 
-logger = logging.getLogger(__name__)
-
-
 # ==========================================================
-# ADMIN CHECK
+# CHECK ADMIN
 # ==========================================================
 
 async def is_admin(
@@ -25,142 +20,124 @@ async def is_admin(
     if not update.effective_user:
         return False
 
-    admins = await context.bot.get_chat_administrators(
-        update.effective_chat.id
-    )
-
-    return any(
-        admin.user.id == update.effective_user.id
-        for admin in admins
-    )
+    if not update.effective_chat:
+        return False
 
 
+    user_id = update.effective_user.id
 
-async def admin_only(
-    update,
-    context
+
+    try:
+
+        member = await context.bot.get_chat_member(
+            update.effective_chat.id,
+            user_id
+        )
+
+
+        return member.status in [
+            "administrator",
+            "creator"
+        ]
+
+
+    except Exception:
+
+        return False
+
+
+
+# ==========================================================
+# ADMIN ONLY DECORATOR CHECK
+# ==========================================================
+
+async def require_admin(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not await is_admin(update, context):
+    allowed = await is_admin(
+        update,
+        context
+    )
+
+
+    if not allowed:
 
         await update.message.reply_text(
-            "❌ Admins only."
+            "❌ This command is only available to admins."
         )
 
         return False
+
 
     return True
 
 
 
 # ==========================================================
-# ANNOUNCE
+# ADMIN HELP
 # ==========================================================
 
-async def announce(
+async def admin_help(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not await admin_only(update, context):
+    if not await require_admin(
+        update,
+        context
+    ):
         return
 
 
-    if not context.args:
+    await update.message.reply_text(
 
-        await update.message.reply_text(
-            "Usage:\n"
-            "/announce message"
-        )
+        """
+👑 Admin Commands
 
-        return
+/remove - Remove a member
+/ban - Ban a member
+/unban - Unban a member
+/warn - Warn a member
 
+Future:
+🎟 Raffle management
+📢 Announcements
+🧹 Cleanup tools
+📊 Activity reports
 
-    message = " ".join(
-        context.args
-    )
-
-
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=f"📢 Announcement\n\n{message}"
+"""
     )
 
 
 
 # ==========================================================
-# PURGE
+# REMOVE MEMBER
 # ==========================================================
 
-async def purge(
+async def remove_member(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not await admin_only(update, context):
-        return
-
-
-    if not context.args:
-
-        await update.message.reply_text(
-            "Usage:\n"
-            "/purge number"
-        )
-
-        return
-
-
-    amount = int(
-        context.args[0]
-    )
-
-
-    message_id = update.message.id
-
-
-    for i in range(amount):
-
-        try:
-
-            await context.bot.delete_message(
-                chat_id=update.effective_chat.id,
-                message_id=message_id-i
-            )
-
-        except:
-
-            pass
-
-
-
-# ==========================================================
-# KICK
-# ==========================================================
-
-async def kick(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    if not await admin_only(update, context):
+    if not await require_admin(
+        update,
+        context
+    ):
         return
 
 
     if not update.message.reply_to_message:
 
         await update.message.reply_text(
-            "Reply to a user to kick."
+            "Reply to a user's message to remove them."
         )
 
         return
 
 
-    user = (
-        update.message
-        .reply_to_message
-        .from_user
-    )
+    user = update.message.reply_to_message.from_user
 
 
     await context.bot.ban_chat_member(
@@ -176,33 +153,37 @@ async def kick(
 
 
     await update.message.reply_text(
-        f"👢 Removed {user.first_name}"
+        f"👋 Removed {user.first_name} from the group."
     )
 
 
 
 # ==========================================================
-# BAN
+# BAN MEMBER
 # ==========================================================
 
-async def ban(
+async def ban_member(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not await admin_only(update, context):
+    if not await require_admin(
+        update,
+        context
+    ):
         return
 
 
     if not update.message.reply_to_message:
+
+        await update.message.reply_text(
+            "Reply to a user's message to ban them."
+        )
+
         return
 
 
-    user = (
-        update.message
-        .reply_to_message
-        .from_user
-    )
+    user = update.message.reply_to_message.from_user
 
 
     await context.bot.ban_chat_member(
@@ -212,89 +193,5 @@ async def ban(
 
 
     await update.message.reply_text(
-        f"🚫 Banned {user.first_name}"
-    )
-
-
-
-# ==========================================================
-# MUTE
-# ==========================================================
-
-async def mute(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    if not await admin_only(update, context):
-        return
-
-
-    if not update.message.reply_to_message:
-        return
-
-
-    user = (
-        update.message
-        .reply_to_message
-        .from_user
-    )
-
-
-    permissions = ChatPermissions(
-        can_send_messages=False
-    )
-
-
-    await context.bot.restrict_chat_member(
-        update.effective_chat.id,
-        user.id,
-        permissions
-    )
-
-
-    await update.message.reply_text(
-        f"🔇 Muted {user.first_name}"
-    )
-
-
-
-# ==========================================================
-# UNMUTE
-# ==========================================================
-
-async def unmute(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    if not await admin_only(update, context):
-        return
-
-
-    if not update.message.reply_to_message:
-        return
-
-
-    user = (
-        update.message
-        .reply_to_message
-        .from_user
-    )
-
-
-    permissions = ChatPermissions(
-        can_send_messages=True
-    )
-
-
-    await context.bot.restrict_chat_member(
-        update.effective_chat.id,
-        user.id,
-        permissions
-    )
-
-
-    await update.message.reply_text(
-        f"🔊 Unmuted {user.first_name}"
+        f"🚫 {user.first_name} has been banned."
     )
