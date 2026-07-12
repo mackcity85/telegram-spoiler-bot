@@ -1,6 +1,10 @@
 import os
 import logging
 import threading
+from database import (
+    initialize_database,
+    update_member
+)
 
 from flask import Flask
 
