@@ -1,30 +1,28 @@
 # ==========================================================
 # Melanated AZ Bot
 # birthdays.py
-# Birthday System - MM/DD Format
+# Birthday System MM/DD
 # ==========================================================
 
-import sqlite3
 import logging
 from datetime import datetime
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from config import DATABASE
+from database import get_db
 
 
 logger = logging.getLogger(__name__)
 
 
 # ==========================================================
-# DATABASE INIT
+# INITIALIZE DATABASE
 # ==========================================================
 
 def init_birthdays():
 
-    conn = sqlite3.connect(DATABASE)
-
+    conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -46,12 +44,15 @@ def init_birthdays():
 # /birthday MM/DD
 # ==========================================================
 
-async def birthday(
+async def birthday_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
     user = update.effective_user
+
+    if not user:
+        return
 
 
     if not context.args:
@@ -74,13 +75,13 @@ Example:
 
 
 
-    birthday_date = context.args[0]
+    birthday = context.args[0]
 
 
     try:
 
         datetime.strptime(
-            birthday_date,
+            birthday,
             "%m/%d"
         )
 
@@ -100,8 +101,7 @@ Please use:
 
 
 
-    conn = sqlite3.connect(DATABASE)
-
+    conn = get_db()
     cursor = conn.cursor()
 
 
@@ -117,7 +117,6 @@ Please use:
     VALUES (?,?,?,?)
 
     ON CONFLICT(user_id)
-
     DO UPDATE SET
 
         username=excluded.username,
@@ -129,7 +128,7 @@ Please use:
         user.id,
         user.username,
         user.first_name,
-        birthday_date
+        birthday
     ))
 
 
@@ -142,7 +141,7 @@ Please use:
         f"""
 🎂 Birthday Saved!
 
-Your birthday: {birthday_date}
+Your birthday: {birthday}
 
 Thank you for sharing with Melanated AZ ❤️
 """
@@ -151,10 +150,10 @@ Thank you for sharing with Melanated AZ ❤️
 
 
 # ==========================================================
-# CHECK TODAY'S BIRTHDAYS
+# /birthdaycheck
 # ==========================================================
 
-async def birthdaycheck(
+async def birthday_check(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
@@ -164,26 +163,27 @@ async def birthdaycheck(
     )
 
 
-    conn = sqlite3.connect(DATABASE)
-
+    conn = get_db()
     cursor = conn.cursor()
 
 
-    cursor.execute("""
-    SELECT first_name, username
-    FROM birthdays
-    WHERE birthday = ?
-    """,
-    (today,))
+    cursor.execute(
+        """
+        SELECT first_name, username
+        FROM birthdays
+        WHERE birthday = ?
+        """,
+        (today,)
+    )
 
 
-    results = cursor.fetchall()
+    birthdays = cursor.fetchall()
 
     conn.close()
 
 
 
-    if not results:
+    if not birthdays:
 
         await update.message.reply_text(
             "🎂 No birthdays today."
@@ -196,16 +196,15 @@ async def birthdaycheck(
     message = "🎉 Today's Birthdays 🎉\n\n"
 
 
-    for user in results:
+    for person in birthdays:
 
         name = (
-            user[0]
-            or user[1]
+            person[0]
+            or person[1]
             or "Member"
         )
 
         message += f"🎂 {name}\n"
-
 
 
     await update.message.reply_text(
