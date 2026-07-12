@@ -19,7 +19,7 @@ BOT_TOKEN = os.environ.get(
 # ADMIN USERS
 # ==========================================================
 #
-# Render Environment Variable Example:
+# Render Environment Variable:
 #
 # ADMIN_IDS=5879167814,123456789
 #
@@ -43,12 +43,27 @@ ADMIN_IDS = [
 
 
 # ==========================================================
-# DEBUG
+# DATABASE
+# ==========================================================
+
+DB_NAME = "melanatedaz.db"
+
+
+# ==========================================================
+# SETTINGS
+# ==========================================================
+
+GROUP_NAME = "Melanated AZ"
+
+
+# ==========================================================
+# VALIDATION
 # ==========================================================
 
 if not BOT_TOKEN:
+
     print(
-        "WARNING: BOT_TOKEN is not set"
+        "WARNING: BOT_TOKEN is missing"
     )
 
 
