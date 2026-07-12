@@ -14,6 +14,7 @@ def get_db():
     return sqlite3.connect(DB_NAME)
 
 
+
 # ==========================================================
 # INITIALIZE DATABASE
 # ==========================================================
@@ -135,3 +136,40 @@ def save_birthday(
 
     conn.commit()
     conn.close()
+
+
+
+# ==========================================================
+# GET TODAY'S BIRTHDAYS
+# ==========================================================
+
+def get_birthdays_today(today):
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+
+    cursor.execute("""
+    SELECT
+        chat_id,
+        user_id,
+        first_name,
+        username
+
+    FROM members
+
+    WHERE birthday=?
+
+    """,
+    (
+        today,
+    ))
+
+
+    birthdays = cursor.fetchall()
+
+
+    conn.close()
+
+
+    return birthdays
