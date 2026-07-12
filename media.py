@@ -1,5 +1,6 @@
 # ==========================================================
 # Melanated AZ Bot
+# media.py
 # Media Restriction System
 # Photos/Videos Require Spoiler
 # GIFs Allowed
@@ -29,16 +30,15 @@ Thank you for helping keep Melanated AZ organized.
 """
 
 
-async def remove_warning(
-    message
-):
+# ==========================================================
+# DELETE WARNING AFTER 30 SECONDS
+# ==========================================================
 
-    await asyncio.sleep(
-        30
-    )
+async def remove_warning(message):
+
+    await asyncio.sleep(30)
 
     try:
-
         await message.delete()
 
     except Exception:
@@ -47,7 +47,11 @@ async def remove_warning(
 
 
 
-async def check_media(
+# ==========================================================
+# MEDIA CHECK
+# ==========================================================
+
+async def media_protection(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
@@ -56,13 +60,20 @@ async def check_media(
 
 
     if not message:
+
         return
 
 
 
-    # Allow spoiler media
+    # ======================================================
+    # ALLOW SPOILER MEDIA
+    # ======================================================
 
-    if message.has_media_spoiler:
+    if getattr(
+        message,
+        "has_media_spoiler",
+        False
+    ):
 
         return
 
@@ -72,7 +83,9 @@ async def check_media(
 
 
 
-    # Photos
+    # ======================================================
+    # BLOCK PHOTOS
+    # ======================================================
 
     if message.photo:
 
@@ -80,7 +93,9 @@ async def check_media(
 
 
 
-    # Videos
+    # ======================================================
+    # BLOCK VIDEOS
+    # ======================================================
 
     elif message.video:
 
@@ -88,17 +103,19 @@ async def check_media(
 
 
 
-    # Video files sent as documents
+    # ======================================================
+    # BLOCK VIDEO DOCUMENTS
+    # ======================================================
 
     elif message.document:
 
-        mime = (
+        mime_type = (
             message.document.mime_type
             or ""
         )
 
 
-        if mime.startswith(
+        if mime_type.startswith(
             "video/"
         ):
 
@@ -106,42 +123,42 @@ async def check_media(
 
 
 
-    # GIFs are allowed
-    # Animations are ignored
+    # ======================================================
+    # ALLOW GIFS
+    # ======================================================
+
+    elif message.animation:
+
+        return
 
 
+
+    # ======================================================
+    # REMOVE MEDIA
+    # ======================================================
 
     if blocked:
 
-
         try:
 
-            # Delete media
 
             await message.delete()
 
 
 
-            # Send warning
-
             warning = await context.bot.send_message(
 
-                chat_id=update.effective_chat.id,
+                chat_id=message.chat_id,
 
                 text=WARNING_MESSAGE
 
             )
 
 
-
-            # Delete warning after 30 seconds
-
             asyncio.create_task(
-
                 remove_warning(
                     warning
                 )
-
             )
 
 
