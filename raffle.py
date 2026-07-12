@@ -1,48 +1,28 @@
 # ==========================================================
+# Melanated AZ Bot
 # raffle.py
-# Melanated AZ Bot v3
 # Raffle System
 # ==========================================================
 
 import random
-import logging
-
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from database import (
-    create_raffle,
-    close_raffle,
-    get_active_raffle,
-    add_raffle_entry,
-    get_raffle_entries,
-    clear_raffle
-)
-
-logger = logging.getLogger(__name__)
+from admin import is_admin
 
 
-# ==========================================================
-# ADMIN CHECK
-# ==========================================================
+# Temporary memory storage
+# We will move this into database.py next
+raffle_data = {
+    "active": False,
+    "prize": "",
+    "entries": []
+}
 
-async def is_admin(update: Update, context):
-
-    user = update.effective_user
-    chat = update.effective_chat
-
-    admins = await context.bot.get_chat_administrators(
-        chat.id
-    )
-
-    return any(
-        admin.user.id == user.id
-        for admin in admins
-    )
 
 
 # ==========================================================
-# START RAFFLE
+# START RAFFLE (ADMIN ONLY)
 # ==========================================================
 
 async def start_raffle(
@@ -51,7 +31,6 @@ async def start_raffle(
 ):
 
     if not await is_admin(update, context):
-
         await update.message.reply_text(
             "❌ Admins only."
         )
@@ -71,78 +50,86 @@ async def start_raffle(
     prize = " ".join(context.args)
 
 
-    create_raffle(
-        update.effective_chat.id,
-        prize
-    )
+    raffle_data["active"] = True
+    raffle_data["prize"] = prize
+    raffle_data["entries"] = []
 
 
     await update.message.reply_text(
-        "🎟️ RAFFLE STARTED!\n\n"
-        f"🏆 Prize:\n{prize}\n\n"
-        "To enter type:\n"
-        "/joinraffle"
+        f"""
+🎟️ RAFFLE STARTED 🎟️
+
+Prize:
+🏆 {prize}
+
+Enter with:
+/enter
+
+Good luck everyone!
+"""
     )
 
 
+
 # ==========================================================
-# JOIN RAFFLE
+# ENTER RAFFLE
 # ==========================================================
 
-async def join_raffle(
+async def enter_raffle(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    raffle = get_active_raffle(
-        update.effective_chat.id
-    )
+    user = update.effective_user
 
 
-    if not raffle:
+    if not raffle_data["active"]:
 
         await update.message.reply_text(
-            "❌ No active raffle."
+            "❌ No active raffle right now."
         )
 
         return
 
 
-    result = add_raffle_entry(
-        raffle["id"],
-        update.effective_user.id,
-        update.effective_user.first_name
+
+    for entry in raffle_data["entries"]:
+
+        if entry["id"] == user.id:
+
+            await update.message.reply_text(
+                "✅ You are already entered."
+            )
+
+            return
+
+
+
+    raffle_data["entries"].append(
+        {
+            "id": user.id,
+            "name": user.first_name
+        }
     )
 
 
-    if result:
+    await update.message.reply_text(
+        f"🎟️ {user.first_name}, you are entered!"
+    )
 
-        await update.message.reply_text(
-            "🎟️ You have been entered!"
-        )
-
-    else:
-
-        await update.message.reply_text(
-            "⚠️ You are already entered."
-        )
 
 
 # ==========================================================
-# VIEW ENTRIES
+# SHOW RAFFLE
 # ==========================================================
 
-async def raffle_entries(
+async def raffle_status(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    raffle = get_active_raffle(
-        update.effective_chat.id
-    )
 
-
-    if not raffle:
+    if not raffle_data["active"]:
 
         await update.message.reply_text(
             "No active raffle."
@@ -151,48 +138,33 @@ async def raffle_entries(
         return
 
 
-    entries = get_raffle_entries(
-        raffle["id"]
-    )
-
-
-    if not entries:
-
-        await update.message.reply_text(
-            "No entries yet."
-        )
-
-        return
-
-
-    message = (
-        "🎟️ Raffle Entries\n\n"
-    )
-
-
-    for number, entry in enumerate(
-        entries,
-        start=1
-    ):
-
-        message += (
-            f"{number}. {entry['name']}\n"
-        )
-
 
     await update.message.reply_text(
-        message
+
+        f"""
+🎟️ Current Raffle
+
+🏆 Prize:
+{raffle_data['prize']}
+
+👥 Entries:
+{len(raffle_data['entries'])}
+
+Type /enter to join!
+"""
     )
 
 
+
 # ==========================================================
-# PICK WINNER
+# PICK WINNER (ADMIN ONLY)
 # ==========================================================
 
-async def raffle_winner(
+async def draw_raffle(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
+
 
     if not await is_admin(update, context):
 
@@ -203,72 +175,36 @@ async def raffle_winner(
         return
 
 
-    raffle = get_active_raffle(
-        update.effective_chat.id
-    )
 
-
-    if not raffle:
+    if not raffle_data["entries"]:
 
         await update.message.reply_text(
-            "No active raffle."
+            "❌ No entries yet."
         )
 
         return
 
-
-    entries = get_raffle_entries(
-        raffle["id"]
-    )
-
-
-    if not entries:
-
-        await update.message.reply_text(
-            "No entries."
-        )
-
-        return
 
 
     winner = random.choice(
-        entries
+        raffle_data["entries"]
     )
+
+
+    raffle_data["active"] = False
 
 
     await update.message.reply_text(
-        "🎉🎉 WINNER 🎉🎉\n\n"
-        f"Congratulations {winner['name']}!\n\n"
-        f"🏆 Prize:\n{raffle['prize']}"
-    )
 
+        f"""
+🎉 RAFFLE WINNER 🎉
 
-# ==========================================================
-# END RAFFLE
-# ==========================================================
+🏆 Prize:
+{raffle_data['prize']}
 
-async def end_raffle(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+👑 Winner:
+{winner['name']}
 
-    if not await is_admin(update, context):
-
-        await update.message.reply_text(
-            "❌ Admins only."
-        )
-
-        return
-
-
-    close_raffle(
-        update.effective_chat.id
-    )
-
-
-    clear_raffle()
-
-
-    await update.message.reply_text(
-        "🎟️ Raffle closed."
+Congratulations!
+"""
     )
