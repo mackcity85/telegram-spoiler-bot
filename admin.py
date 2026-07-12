@@ -1,11 +1,20 @@
-from telegram import Update
+# ==========================================================
+# admin.py
+# Melanated AZ Bot v3
+# Admin Protection + Moderation Commands
+# ==========================================================
+
+import logging
+
+from telegram import Update, ChatPermissions
 from telegram.ext import ContextTypes
 
-from database import get_member_count
+
+logger = logging.getLogger(__name__)
 
 
 # ==========================================================
-# CHECK ADMIN
+# ADMIN CHECK
 # ==========================================================
 
 async def is_admin(
@@ -20,23 +29,16 @@ async def is_admin(
         update.effective_chat.id
     )
 
-    for admin in admins:
-
-        if admin.user.id == update.effective_user.id:
-            return True
-
-
-    return False
+    return any(
+        admin.user.id == update.effective_user.id
+        for admin in admins
+    )
 
 
 
-# ==========================================================
-# ANNOUNCEMENT
-# ==========================================================
-
-async def announce(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
+async def admin_only(
+    update,
+    context
 ):
 
     if not await is_admin(update, context):
@@ -45,13 +47,30 @@ async def announce(
             "❌ Admins only."
         )
 
+        return False
+
+    return True
+
+
+
+# ==========================================================
+# ANNOUNCE
+# ==========================================================
+
+async def announce(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not await admin_only(update, context):
         return
 
 
     if not context.args:
 
         await update.message.reply_text(
-            "Usage:\n/announce Your message here"
+            "Usage:\n"
+            "/announce message"
         )
 
         return
@@ -64,67 +83,218 @@ async def announce(
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=(
-            "📢 MELANATED AZ ANNOUNCEMENT\n\n"
-            f"{message}"
-        )
+        text=f"📢 Announcement\n\n{message}"
     )
 
 
 
 # ==========================================================
-# BOT STATUS
+# PURGE
 # ==========================================================
 
-async def botstatus(
+async def purge(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not await is_admin(update, context):
+    if not await admin_only(update, context):
+        return
+
+
+    if not context.args:
 
         await update.message.reply_text(
-            "❌ Admins only."
+            "Usage:\n"
+            "/purge number"
         )
 
         return
 
 
-    count = get_member_count()
+    amount = int(
+        context.args[0]
+    )
+
+
+    message_id = update.message.id
+
+
+    for i in range(amount):
+
+        try:
+
+            await context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=message_id-i
+            )
+
+        except:
+
+            pass
+
+
+
+# ==========================================================
+# KICK
+# ==========================================================
+
+async def kick(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not await admin_only(update, context):
+        return
+
+
+    if not update.message.reply_to_message:
+
+        await update.message.reply_text(
+            "Reply to a user to kick."
+        )
+
+        return
+
+
+    user = (
+        update.message
+        .reply_to_message
+        .from_user
+    )
+
+
+    await context.bot.ban_chat_member(
+        update.effective_chat.id,
+        user.id
+    )
+
+
+    await context.bot.unban_chat_member(
+        update.effective_chat.id,
+        user.id
+    )
 
 
     await update.message.reply_text(
-        "✅ Melanated AZ Bot Status\n\n"
-        "🟢 Online\n"
-        "🛡 Media Protection Active\n"
-        "🎂 Birthday System Active\n"
-        "👋 Activity Tracking Active\n"
-        f"👥 Members Tracked: {count}"
+        f"👢 Removed {user.first_name}"
     )
 
 
 
 # ==========================================================
-# MEMBER COUNT
+# BAN
 # ==========================================================
 
-async def members(
+async def ban(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    if not await is_admin(update, context):
-
-        await update.message.reply_text(
-            "❌ Admins only."
-        )
-
+    if not await admin_only(update, context):
         return
 
 
-    count = get_member_count()
+    if not update.message.reply_to_message:
+        return
+
+
+    user = (
+        update.message
+        .reply_to_message
+        .from_user
+    )
+
+
+    await context.bot.ban_chat_member(
+        update.effective_chat.id,
+        user.id
+    )
 
 
     await update.message.reply_text(
-        f"👥 Melanated AZ Members Tracked:\n\n{count}"
+        f"🚫 Banned {user.first_name}"
+    )
+
+
+
+# ==========================================================
+# MUTE
+# ==========================================================
+
+async def mute(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not await admin_only(update, context):
+        return
+
+
+    if not update.message.reply_to_message:
+        return
+
+
+    user = (
+        update.message
+        .reply_to_message
+        .from_user
+    )
+
+
+    permissions = ChatPermissions(
+        can_send_messages=False
+    )
+
+
+    await context.bot.restrict_chat_member(
+        update.effective_chat.id,
+        user.id,
+        permissions
+    )
+
+
+    await update.message.reply_text(
+        f"🔇 Muted {user.first_name}"
+    )
+
+
+
+# ==========================================================
+# UNMUTE
+# ==========================================================
+
+async def unmute(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not await admin_only(update, context):
+        return
+
+
+    if not update.message.reply_to_message:
+        return
+
+
+    user = (
+        update.message
+        .reply_to_message
+        .from_user
+    )
+
+
+    permissions = ChatPermissions(
+        can_send_messages=True
+    )
+
+
+    await context.bot.restrict_chat_member(
+        update.effective_chat.id,
+        user.id,
+        permissions
+    )
+
+
+    await update.message.reply_text(
+        f"🔊 Unmuted {user.first_name}"
     )
