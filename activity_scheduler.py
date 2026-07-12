@@ -1,120 +1,111 @@
 # ==========================================================
 # Melanated AZ Bot
 # activity_scheduler.py
-# Member Activity Scheduler
+# Member Activity Tracking & Reminders
 # ==========================================================
 
 import asyncio
-from datetime import datetime, timedelta
+import logging
 
-from database import get_inactive_members, get_active_members
+from database import (
+    get_inactive_members,
+    get_active_members
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 
 # ==========================================================
-# SEND ACTIVITY CHECK
+# ACTIVITY CHECK LOOP
 # ==========================================================
 
 async def activity_check(
-    application
+    application,
+    chat_id
 ):
+
+
+    logger.info(
+        "Activity scheduler started"
+    )
+
 
     while True:
 
         try:
 
-            chat_id = application.bot_data.get(
-                "STARTUP_CHAT_ID"
-            )
 
-
-            if not chat_id:
-
-                await asyncio.sleep(86400)
-                continue
-
-
-
-            inactive_members = get_inactive_members(
-                days=30
-            )
-
-
-            for member in inactive_members:
-
-
-                try:
-
-                    await application.bot.send_message(
-
-                        chat_id=member["user_id"],
-
-                        text="""
-👋 Hey!
-
-We noticed you haven't been active in Melanated AZ recently.
-
-We appreciate having you here!
-
-If you would like to stay connected, jump back into the conversation anytime.
-
-If you no longer wish to be part of the community, you can leave whenever you choose.
-
-👑 Melanated AZ
-"""
-                    )
-
-
-                except Exception:
-
-                    pass
-
-
-
-            # Thank active members
+            # Active member appreciation
 
             active_members = get_active_members(
-                days=30
+                30
             )
 
 
-            for member in active_members:
+            if active_members:
+
+                names = ", ".join(
+
+                    member["first_name"]
+
+                    for member in active_members[:10]
+
+                )
 
 
-                try:
+                await application.bot.send_message(
 
-                    await application.bot.send_message(
+                    chat_id=chat_id,
 
-                        chat_id=member["user_id"],
+                    text=f"""
+👑 Community Appreciation 👑
 
-                        text="""
-🔥 Thank you!
+Thank you to everyone staying active and contributing:
 
-We appreciate your activity and contribution to Melanated AZ.
+{names}
 
-Your participation helps keep this community active, welcoming, and connected.
+We appreciate the conversations,
+connections, and positive energy!
 
-👑 Keep bringing the good energy!
+🔥 Melanated AZ
 """
-                    )
+
+                )
 
 
-                except Exception:
 
-                    pass
+            # Inactive member reminder list
+
+            inactive_members = get_inactive_members(
+                30
+            )
+
+
+            logger.info(
+
+                f"Inactive members found: {len(inactive_members)}"
+
+            )
 
 
 
         except Exception as e:
 
-            print(
-                "Activity scheduler error:",
-                e
+
+            logger.error(
+
+                f"Activity scheduler error: {e}"
+
             )
 
 
-        # Run once every 30 days
+
+        # Run every 30 days
 
         await asyncio.sleep(
-            60 * 60 * 24 * 30
+
+            2592000
+
         )
