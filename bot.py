@@ -211,7 +211,7 @@ def main():
     application.add_handler(
         CommandHandler(
             "truth",
-            truth_dare
+            truth_or_dare
         )
     )
 
