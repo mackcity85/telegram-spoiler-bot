@@ -1,10 +1,12 @@
 # ==========================================================
 # Melanated AZ Bot
 # activities.py
+# Activities & Help Commands
 # ==========================================================
 
 from telegram import Update
 from telegram.ext import ContextTypes
+
 
 
 # ==========================================================
@@ -16,51 +18,68 @@ async def activities(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
+
     await update.message.reply_text(
+
 """
-🎉 Melanated AZ Activities
+🎉 Melanated AZ Activities 👑
 
-We regularly host community events including:
+We host activities designed to help members connect:
 
-🎲 Games & Ice Breakers
+🎲 Community Games
+
 • Trivia
+• Ice Breakers
+• Polls
 • Would You Rather
 • Truth or Dare
-• Polls
+
 
 🎟 Community Events
+
 • Raffles
 • Meet & Greets
-• Group Outings
-• Happy Hours
-• Kickbacks
+• Group Kickbacks
+• Networking Events
 
-🎂 Community Recognition
+
+🎂 Member Recognition
+
 • Birthday Shoutouts
 • Member Appreciation
 
+
 ━━━━━━━━━━━━━━━
 
-Useful Commands
+Useful Commands:
 
 📜 /rules
-View the community rules
+View community guidelines
+
+👋 /intro
+Introduce yourself
 
 🎂 /setbirthday MM-DD-YYYY
 Save your birthday
 
 🎟 /raffle
-View the current raffle
+View current raffle
 
 🎟 /enter
-Enter the active raffle
+Enter raffle
 
 ❓ /help
-See all commands
+View commands
 
-We add new activities regularly.
+━━━━━━━━━━━━━━━
+
+More activities will be added regularly.
+
+Have fun and enjoy the community! 👑
 """
+
     )
+
 
 
 # ==========================================================
@@ -72,44 +91,49 @@ async def help_command(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
+
     await update.message.reply_text(
+
 """
-👋 Melanated AZ Bot
+👑 Melanated AZ Bot Help
 
-General
+Community Commands
 
-/rules
-Community Rules
+📜 /rules
+View group guidelines
 
-/activities
-Upcoming activities
+🎉 /activities
+See community activities
 
-/help
-Bot commands
+👋 /intro
+Post your introduction
+
 
 🎂 Birthdays
 
 /setbirthday MM-DD-YYYY
 
+
 🎟 Raffles
 
 /raffle
-Current raffle
+View current raffle
 
 /enter
-Enter raffle
+Join raffle
+
 
 ━━━━━━━━━━━━━━━
 
-Admins
-
-/startraffle
-
-/drawraffle
-
-/cancelraffle
+Admin Commands
 
 /admin
-Admin commands
+
+(Admins only)
+
+━━━━━━━━━━━━━━━
+
+Enjoy the community! 👑
 """
+
     )
