@@ -1,6 +1,8 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from database import get_member_count
+
 
 # ==========================================================
 # CHECK ADMIN
@@ -11,19 +13,16 @@ async def is_admin(
     context: ContextTypes.DEFAULT_TYPE
 ):
 
-    user_id = update.effective_user.id
-    chat_id = update.effective_chat.id
-
+    if not update.effective_user:
+        return False
 
     admins = await context.bot.get_chat_administrators(
-        chat_id
+        update.effective_chat.id
     )
-
 
     for admin in admins:
 
-        if admin.user.id == user_id:
-
+        if admin.user.id == update.effective_user.id:
             return True
 
 
@@ -32,7 +31,7 @@ async def is_admin(
 
 
 # ==========================================================
-# ANNOUNCEMENT COMMAND
+# ANNOUNCEMENT
 # ==========================================================
 
 async def announce(
@@ -52,7 +51,7 @@ async def announce(
     if not context.args:
 
         await update.message.reply_text(
-            "Usage:\n/announce your message"
+            "Usage:\n/announce Your message here"
         )
 
         return
@@ -65,7 +64,10 @@ async def announce(
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f"📢 Announcement\n\n{message}"
+        text=(
+            "📢 MELANATED AZ ANNOUNCEMENT\n\n"
+            f"{message}"
+        )
     )
 
 
@@ -88,10 +90,41 @@ async def botstatus(
         return
 
 
+    count = get_member_count()
+
+
     await update.message.reply_text(
         "✅ Melanated AZ Bot Status\n\n"
         "🟢 Online\n"
         "🛡 Media Protection Active\n"
         "🎂 Birthday System Active\n"
-        "👋 Activity Tracking Active"
+        "👋 Activity Tracking Active\n"
+        f"👥 Members Tracked: {count}"
+    )
+
+
+
+# ==========================================================
+# MEMBER COUNT
+# ==========================================================
+
+async def members(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    if not await is_admin(update, context):
+
+        await update.message.reply_text(
+            "❌ Admins only."
+        )
+
+        return
+
+
+    count = get_member_count()
+
+
+    await update.message.reply_text(
+        f"👥 Melanated AZ Members Tracked:\n\n{count}"
     )
